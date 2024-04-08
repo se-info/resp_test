@@ -1,0 +1,286 @@
+WITH report_date AS
+(SELECT
+    DATE(report_date) AS report_date
+FROM
+    ((SELECT sequence(current_date - interval '90' day, current_date - interval '1' day) bar)
+CROSS JOIN
+    unnest (bar) as t(report_date)
+))
+, period AS
+(SELECT
+    report_date
+    , '2. Weekly' AS period_group
+    , 'W' || CAST(WEEK(report_date) AS VARCHAR) AS period
+    , DATE_FORMAT(DATE_TRUNC('week', report_date) + interval '4' day, '%d-%b') AS explain_date
+    , DENSE_RANK() OVER (ORDER BY DATE_TRUNC('week', report_date) DESC) AS no
+    , 7.000000 AS days
+FROM
+    report_date
+WHERE
+    report_date BETWEEN  DATE_TRUNC('week', current_date) - interval '84' day AND  DATE_TRUNC('week', current_date) - interval '1' day
+
+UNION ALL
+
+SELECT
+    report_date
+    , '3. Daily' AS period_group
+    , DATE_FORMAT(report_date, '%Y-%m-%d') AS period
+    , DATE_FORMAT(report_date, '%a') AS explain_date
+    , DENSE_RANK() OVER (ORDER BY report_date DESC) AS no
+    , 1.000000 AS days
+FROM
+    report_date
+WHERE
+    report_date BETWEEN current_date - interval '90' day AND current_date - interval '1' day
+
+UNION ALL
+
+SELECT
+    report_date
+    , '1. Monthly' AS period_group
+    , 'M-' || CAST(MONTH(current_date) - MONTH(report_date) AS VARCHAR) AS period
+    , DATE_FORMAT(report_date, '%b-%Y') AS explain_date
+    , DENSE_RANK() OVER (ORDER BY DATE_TRUNC('month', report_date) DESC) AS no
+    , CAST(IF(DATE_TRUNC('month', report_date) = DATE_TRUNC('month', current_date - interval '1' day), DAY(current_date - interval '1' day), DAY(LAST_DAY_OF_MONTH(report_date))) AS DOUBLE) AS days
+FROM
+    report_date
+WHERE
+    report_date BETWEEN DATE_TRUNC('month', current_date - interval '1' day) - interval '2' month AND current_date - interval '1' day
+    )
+
+-- a30_shippers
+, a30_shippers AS
+(SELECT
+    p.period_group
+    , p.period
+    , p.explain_date
+    , p.no
+    , p.days
+    , a.city_group
+    , SUM(a30_shippers) / p.days AS a30_shippers
+FROM
+    period p
+LEFT JOIN
+    foody_bi_anlys.gofast_a30_shippers a
+ON
+    p.report_date = a.report_date
+GROUP BY
+    1,2,3,4,5,6
+    )
+-- driver_time
+, driver_time AS
+(SELECT
+    p.period_group
+    , p.period
+    , p.explain_date
+    , d.city_group
+    , p.days
+    , SUM(total_online_time) / p.days AS total_online_time
+    , SUM(total_working_time) / p.days AS total_working_time
+    , SUM(total_driver_online) / p.days AS total_driver_online
+    , SUM(total_driver_work) / p.days AS total_driver_work
+FROM
+    period p
+LEFT JOIN
+    foody_bi_anlys.gofast_driver_time d
+ON
+    p.report_date = d.create_date
+GROUP BY
+    1,2,3,4,5
+    )
+-- orders
+, orders AS
+(SELECT
+    p.period_group
+    , p.period
+    , p.explain_date
+    , o.city_group
+    , p.days
+    , SUM(total_delivered_orders) / p.days AS total_delivered_orders
+    , SUM(total_orders) / p.days AS total_submitted_orders
+    , SUM(total_delivered_peak3_orders) / p.days AS total_delivered_peak3_orders
+FROM
+    period p
+LEFT JOIN
+    foody_bi_anlys.gofast_orders o
+ON
+    p.report_date = o.created_date
+GROUP BY
+    1,2,3,4,5
+    )
+-- active_drivers
+, active_drivers AS
+(SELECT
+    p.period_group
+    , p.period
+    , p.explain_date
+    , ad.city_group
+    , p.days
+    , SUM(total_driver_active) / p.days AS total_driver_active
+FROM
+    period p
+LEFT JOIN
+    foody_bi_anlys.gofast_active_drivers ad
+ON
+    p.report_date = ad.report_date
+GROUP BY
+    1,2,3,4,5
+    )
+, all_metrics AS
+(SELECT
+    a.period_group
+    , a.period || ' : ' || a.explain_date AS period
+    , a.city_group
+    , a.no
+    , a.a30_shippers
+    , d.total_online_time
+    , d.total_working_time
+    , d.total_driver_online
+    , d.total_driver_work
+    , o.total_delivered_orders
+    , o.total_submitted_orders
+    , o.total_delivered_peak3_orders
+    , ad.total_driver_active
+FROM
+    a30_shippers a
+LEFT JOIN
+    driver_time d ON a.period = d.period AND a.explain_date = d.explain_date AND a.city_group = d.city_group
+LEFT JOIN
+    orders o ON a.period = o.period AND a.explain_date = o.explain_date AND a.city_group = o.city_group
+LEFT JOIN
+    active_drivers ad ON a.period = ad.period AND a.explain_date = ad.explain_date AND a.city_group = ad.city_group
+    )
+, union_metrics AS
+(SELECT
+    period_group
+    , period
+    , CASE
+        WHEN city_group IN ('HCM', 'HN', 'DN') THEN 'Tier 1'
+        WHEN city_group IN ('Hai Phong', 'Can Tho', 'Dong Nai', 'Hue') THEN 'Tier 2'
+        WHEN city_group IN ('Binh Duong', 'Vung Tau', 'OTH') THEN 'Tier 2.'
+    ELSE 'Flag' END AS tier
+    , city_group
+    , no
+    , SUM(total_driver_active) AS active_drivers
+    , SUM(a30_shippers) AS a30_drivers
+    , SUM(total_online_time) AS total_online_time
+    , SUM(total_working_time) AS total_working_time
+    , SUM(total_driver_online) AS total_driver_online
+    , SUM(total_driver_work) AS total_driver_work
+    , SUM(total_delivered_orders) AS total_delivered_ado
+    , SUM(total_submitted_orders) AS total_submitted_ado
+    , SUM(total_delivered_peak3_orders) AS total_delivered_peak3_ado
+FROM
+    all_metrics
+GROUP BY
+    1,2,3,4,5
+
+UNION ALL
+
+SELECT
+    period_group
+    , period
+    , ' ' tier
+    , 'VN' AS city_group
+    , no
+    , SUM(total_driver_active) AS active_drivers
+    , SUM(a30_shippers) AS a30_drivers
+    , SUM(total_online_time) AS total_online_time
+    , SUM(total_working_time) AS total_working_time
+    , SUM(total_driver_online) AS total_driver_online
+    , SUM(total_driver_work) AS total_driver_work
+    , SUM(total_delivered_orders) AS total_delivered_ado
+    , SUM(total_submitted_orders) AS total_submitted_ado
+    , SUM(total_delivered_peak3_orders) AS total_delivered_peak3_ado
+FROM
+    all_metrics
+GROUP BY
+    1,2,3,4,5
+    )
+
+, final_metrics AS
+(SELECT
+    period_group
+    , period
+    , tier
+    , city_group
+    , no
+    , active_drivers
+    , IF(COALESCE(a30_drivers, 0) = 0, NULL, active_drivers / a30_drivers) AS active_over_a30
+    , IF(COALESCE(active_drivers, 0) = 0, NULL, total_delivered_ado / active_drivers) AS driver_ado
+    , IF(COALESCE(total_driver_online, 0) = 0, NULL, total_online_time / total_driver_online) AS online_time
+    , IF(COALESCE(total_driver_online, 0) = 0, NULL, total_working_time / total_driver_online) AS working_time
+    , IF(COALESCE(total_driver_online, 0) = 0, 0, total_online_time / total_driver_online) - IF(COALESCE(active_drivers, 0) = 0, 0, total_working_time / total_driver_online) AS down_time
+    , total_delivered_ado
+    , total_submitted_ado
+    , IF(COALESCE(total_delivered_ado, 0) = 0, NULL, total_delivered_peak3_ado / total_delivered_ado) AS peak3
+FROM
+    union_metrics
+    )
+, unpivot AS
+(SELECT
+    f.period_group
+    , f.period
+    , f.tier
+    , f.city_group
+    , f.no
+    , a.metrics
+    , a.value
+FROM
+    final_metrics f
+CROSS JOIN
+    UNNEST
+        (
+        ARRAY['3. Active Driver', '4. Active Driver / A30 Driver', '5. Driver ADO', '6. Online time', '7. Working time', '8. Down time', '2. Delivered ADO', '1. Submitted ADO', '9. %Peak 3'],
+        ARRAY[active_drivers, active_over_a30, driver_ado, online_time, working_time, down_time, total_delivered_ado, total_submitted_ado, peak3]
+        ) a (metrics, value)
+    )
+
+SELECT
+    period_group
+    , CASE
+        WHEN period_group = '1. Monthly' AND no <= 3 THEN 'L3M'
+        WHEN period_group = '2. Weekly' AND no <= 4 THEN 'L4W'
+        WHEN period_group = '3. Daily' AND no <= 10 THEN 'L10D'
+    ELSE 'Others' END AS period_subgroup
+    , period
+    , tier
+    , city_group
+    , metrics
+    , value
+FROM
+    unpivot
+
+UNION ALL
+
+SELECT
+    '2. WoW' AS period_group
+    , 'WoW' AS period
+    , 'Others' AS period_subgroup
+    , w1.tier
+    , w1.city_group
+    , w1.metrics
+    , IF(COALESCE(w2.value, 0) = 0, NULL, IF(w1.metrics = '9. %Peak 3', w1.value - w2.value, w1.value / w2.value - 1)) AS value
+FROM
+    (SELECT * FROM unpivot WHERE no = 1 AND period_group = '2. Weekly') w1
+LEFT JOIN
+    (SELECT * FROM unpivot WHERE no = 2 AND period_group = '2. Weekly') w2
+ON
+    w1.tier = w2.tier AND w1.city_group = w2.city_group AND w1.metrics = w2.metrics
+
+UNION ALL
+
+SELECT
+    '1. MoM' AS period_group
+    , 'MoM' AS period
+    , 'Others' AS period_subgroup
+    , m_0.tier
+    , m_0.city_group
+    , m_0.metrics
+    , IF(COALESCE(m_1.value, 0) = 0, NULL, IF(m_0.metrics = '9. %Peak 3', m_0.value - m_1.value, m_0.value / m_1.value - 1)) AS value
+FROM
+    (SELECT * FROM unpivot WHERE no = 1 AND period_group = '1. Monthly') m_0
+LEFT JOIN
+    (SELECT * FROM unpivot WHERE no = 2 AND period_group = '1. Monthly') m_1
+ON
+    m_0.tier = m_1.tier AND m_0.city_group = m_1.city_group AND m_0.metrics = m_1.metrics

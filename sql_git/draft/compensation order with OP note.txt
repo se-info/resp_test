@@ -1,0 +1,81 @@
+SELECT 
+                distinct oct.id as order_id
+                ,oct.order_code
+                ,date(from_unixtime(oct.submit_time - 60*60)) as created_date
+                
+                ,case   when oct.status = 7 then 'delivered'
+                        when oct.status = 8 then 'cancel'
+                        when oct.status = 9 then 'quit'
+                        end as order_status
+                ,go.admin_note as op_note_for_order
+        
+        
+                from shopeefood.foody_order_db__order_completed_tab__reg_daily_s0_live oct
+              
+              ---- get admin note for quit orders ------
+              left join shopeefood.foody_mart__fact_gross_order_join_detail go ON go.id = oct.id
+              
+              ---- get quit timestamp -------------
+              
+              LEFT JOIN (
+                        SELECT osl.order_id, osl.create_uid, max(from_unixtime(osl.create_time - 60*60)) as quit_timestamp
+    
+                            
+                          from shopeefood.foody_order_db__order_status_log_tab__reg_daily_s0_live osl
+                          where 1=1
+                          and status = 9
+                          group by 1,2
+                          )quit on quit.order_id = oct.id  
+                  
+                  
+                LEFT JOIN shopeefood.foody_mart__fact_order_note c1 
+                on  c1.order_id = oct.id and c1.note_type_id = 3 -- get quit reason
+
+                   
+                    ------ Get merchant segment -------
+                    
+                LEFT JOIN foody.foody_vn_bd_team__foody_merchant_segment_info seg on oct.restaurant_id = cast(seg.merchant_id as int) and seg.segment_date = 'current'
+            
+            -- get denied timestamp, deny cc, deny note for each deny 
+            
+                LEFT JOIN 
+                    (
+                    SELECT 
+                        --date(from_unixtime(create_time - 60*60)) denied_date
+                          order_id
+                          --,from_unixtime(create_time - 60*60) denied_timestamp
+                          --,create_uid denied_uid
+                          ,note as deny_note
+                     
+                    FROM shopeefood.foody_order_db__order_status_log_tab__reg_daily_s0_live osl 
+                    
+                    WHERE 1=1
+                    and status = 12 --(denied status)
+                    group by 1,2
+                    )d on d.order_id = oct.id
+            
+            --get manual asssign time, manual assign orders
+                LEFT JOIN
+                    (
+                    SELECT 
+                           order_id
+                          ,min(from_unixtime(create_time - 60*60)) min_assign_timestamp
+                          ,max(from_unixtime(create_time - 60*60)) max_assign_timestamp
+                          --,create_uid as assign_uid
+                          --,status
+                          
+                    FROM shopeefood.foody_order_db__order_status_log_tab__reg_daily_s0_live osl 
+                    
+                    WHERE 1=1
+                    and status in (10)  --(reassigned status = manual assign)
+                    group by 1
+                    )ma on ma.order_id = oct.id --d2.assign_timestamp > d1.denied_timestamp
+                                        
+              
+        where 1 = 1
+            and oct.status = 9
+            --and date(from_unixtime(oct.submit_time - 60*60)) >= date(current_date) - interval '120' day
+            --and date(from_unixtime(oct.submit_time - 60*60)) < date(current_date)
+            --and date(from_unixtime(oct.submit_time - 60*60)) between date('2021-10-25') and date('2021-10-31')
+            and oct.city_id not in (0,238,468,469,470,471,472)
+            and oct.id = 246932644

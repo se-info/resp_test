@@ -1,0 +1,95 @@
+SELECT
+             base.report_date
+             ,case when base.shipper_type_id = 12 then 1
+                   ELSE 0 end as is_hub_driver_delivered
+            ,base.uid as uid_delivered
+            ,base.create_hour as submit_date
+            ,a.shipper_uid as uid_first_inch
+            ,a.incharge_ts as first_inch_ts
+            ,date(a.incharge_ts) as inch_date
+            ,a.working_group as inchar_driver_type
+            ,base.ref_order_id
+            ,base.city_group
+            ,coalesce(base.hub_name,base.pick_hub_name)  as hub_location
+            ,case WHEN base.hub_id > 0 then 1
+                WHEN base.pick_hub_id > 0 and base.distance <= 2 then 1
+                else 0 end as is_hub_qualified
+            ,at.total_assign_attempt    
+
+FROM
+        (SELECT
+            dot.ref_order_id
+            ,date(from_unixtime(dot.submitted_time - 3600)) as report_date
+            ,dot.uid
+            ,extract(hour from from_unixtime(dot.submitted_time - 3600)) as create_hour
+            ,(dot.delivery_distance*1.00)/1000 as distance
+            ,case when dot.pick_city_id = 217 then 'HCM'
+            when dot.pick_city_id = 218 then 'HN'
+            when dot.pick_city_id = 219 then 'DN'
+            ELSE 'OTH' end as city_group
+            ,dot.ref_order_category
+            ,sm.shipper_type_id
+            ,hub.hub_name as pick_hub_name
+            ,hubb.hub_name
+            ,COALESCE(cast(json_extract(dotet.order_data,'$.hub_id') as BIGINT ),0) as hub_id
+            ,COALESCE(cast(json_extract(dotet.order_data,'$.pick_hub_id') as BIGINT ),0) as pick_hub_id
+            ,COALESCE(cast(json_extract(dotet.order_data,'$.drop_hub_id') as BIGINT ),0) as drop_hub_id
+            
+            FROM foody_partner_db__driver_order_tab__reg_daily_s0_live dot
+            
+            LEFT JOIN foody_partner_db__driver_order_extra_tab__reg_daily_s0_live dotet ON dot.id = dotet.order_id
+            LEFT JOIN foody_internal_db__shipper_hub_info_tab__reg_daily_s0_live hub on hub.id = COALESCE(cast(json_extract(dotet.order_data,'$.pick_hub_id') as BIGINT ),0)
+            LEFT JOIN foody_internal_db__shipper_hub_info_tab__reg_daily_s0_live hubb on hubb.id = COALESCE(cast(json_extract(dotet.order_data,'$.hub_id') as BIGINT ),0)
+            LEFT JOIN (SELECT *
+            ,case when grass_date = 'current' then date(current_date)
+            else cast(grass_date as date) end as report_date
+            from foody_mart__profile_shipper_master)sm on sm.shipper_id = dot.uid and sm.report_date = date(from_unixtime(dot.submitted_time - 3600))
+            
+            WHERE 1 = 1
+            and (COALESCE(cast(json_extract(dotet.order_data,'$.pick_hub_id') as BIGINT ),0)>0 or COALESCE(cast(json_extract(dotet.order_data,'$.hub_id') as BIGINT ),0) >0 )
+            and dot.ref_order_category = 0
+            and dot.pick_city_id = 217
+            and dot.ref_order_status = 7
+        and extract(hour from from_unixtime(dot.submitted_time - 3600)) between 10 and 20 )base
+LEFT JOIN
+        (SELECT
+            a.order_id
+            ,a.shipper_uid
+            ,case when sm.shipper_type_id = 12 then 'Hub'
+                  else 'PT16' end as working_group
+            ,min(from_unixtime(a.create_time - 3600)) as incharge_ts
+
+            FROM foody_order_db__order_status_log_tab__reg_daily_s0_live a
+            LEFT JOIN (SELECT *,
+            case when grass_date = 'current' then date(current_date)
+            else cast(grass_date as date) end as report_date
+            from foody_mart__profile_shipper_master) sm on sm.shipper_id = a.shipper_uid and sm.report_date = date(from_unixtime(a.create_time - 3600))
+            where 1 = 1
+            and status = 11
+            GROUP BY 1,2,3
+
+        ) a on a.order_id = base.ref_order_id
+LEFT JOIN 
+        (SELECT order_id,order_type,count(order_uid) as total_assign_attempt
+        
+        from (SELECT concat(cast(order_id as VARCHAR),'-',cast(order_type as VARCHAR)) as order_uid, shipper_uid,order_id, city_id, assign_type, from_unixtime(update_time - 60*60) update_time, from_unixtime(create_time - 60*60) create_time,status,order_type, experiment_group
+
+        from shopeefood.foody_partner_archive_db__order_assign_shipper_log_archive_tab__reg_daily_s0_live
+        --where status in (8,9) -- shipper ignore
+--8,9: ignore. 2,14,15: denied
+        UNION
+    
+        SELECT concat(cast(order_id as VARCHAR),'-',cast(order_type as VARCHAR)) as order_uid, shipper_uid,order_id, city_id, assign_type, from_unixtime(update_time - 60*60) update_time, from_unixtime(create_time - 60*60) create_time,status,order_type, experiment_group
+
+        from shopeefood.foody_partner_db__order_assign_shipper_log_tab__reg_daily_s0_live
+         --where status in (8,9) -- shipper ignore
+     )
+     WHERE 1 = 1    
+     GROUP BY 1,2)at on at.order_id = base.ref_order_id and at.order_type = base.ref_order_category
+
+where report_date between current_date - interval '4' day and current_date - interval '1' day
+
+
+
+
+

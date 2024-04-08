@@ -1,0 +1,1 @@
+select max(created_date) from dev_vnfdbi_opsndrivers.gf_csih_raw_drv_chat

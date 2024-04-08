@@ -1,0 +1,104 @@
+SELECT report_date
+      ,report_hour
+      ,city_name
+      ,is_auto_accepted
+      ,is_auto_accepted_continuous_assign
+      ,sum(waiting_time)/count(distinct id) as avg_waiting_time
+      
+        
+FROM 
+(SELECT oct.id 
+      ,date(from_unixtime(oct.final_delivered_time - 3600)) as report_date 
+      ,extract(hour from from_unixtime(oct.final_delivered_time - 3600)) as report_hour 
+      ,city.city_name 
+      ,case when oct.foody_service_id = 1 then 'Food' 
+            else 'Market' end as foody_service 
+      ,case when a.experiment_group in (3,4) then 1 ELSE 0 end as is_auto_accepted
+      ,case when a.experiment_group in (7,8) then 1 ELSE 0 end as is_auto_accepted_continuous_assign            
+      ,date_diff('second',last_arrived_mex,last_picked_timestamp)*1.0000/3600 as waiting_time    
+        
+FROM shopeefood.foody_order_db__order_completed_tab__reg_daily_s0_live oct
+
+
+
+--- Arrive time
+LEFT JOIN 
+(SELECT      a.order_id
+            ,dot.ref_order_id
+
+            ,max(from_unixtime(a.create_time - 3600))  as last_arrived_mex
+
+            from shopeefood.foody_partner_db__driver_order_arrive_log_tab__reg_daily_s0_live a
+            left join shopeefood.foody_partner_db__driver_order_tab__reg_daily_s0_live dot on dot.id = a.order_id
+            where 1 = 1 
+            and a.destination_key = 256
+            --and date(from_unixtime(a.create_time - 3600)) = current_date - interval '1' day 
+            
+            GROUP BY 1,2)b on b.ref_order_id = oct.id 
+            
+--- Location            
+LEFT JOIN (
+            SELECT distinct city_id,city_name
+            
+            FROM shopeefood.foody_mart__fact_gross_order_join_detail     
+                )city on city.city_id = oct.city_id            
+
+--- Time performance 
+LEFT JOIN
+            (
+            SELECT order_id 
+            ,min(case when status = 21 then cast(from_unixtime(create_time) as TIMESTAMP) - interval '1' hour else null end) as first_auto_assign_timestamp
+            ,max(case when status = 11 then cast(from_unixtime(create_time) as TIMESTAMP) - interval '1' hour else null end) as last_incharge_timestamp
+            ,max(case when status = 6 then cast(from_unixtime(create_time) as TIMESTAMP) - interval '1' hour else null end) as last_picked_timestamp
+            from shopeefood.foody_order_db__order_status_log_tab__reg_daily_s0_live
+            where 1=1
+            and grass_schema = 'foody_order_db'
+            group by 1
+            
+            )ol on ol.order_id = oct.id 
+                
+--- Continuos Assign 
+LEFT JOIN 
+        (SELECT concat(cast(order_id as VARCHAR),'-',cast(order_type as VARCHAR)) as order_uid, order_id, city_id, assign_type, update_time, create_time,status,order_type, experiment_group
+
+        from foody.foody_partner_archive_db__order_assign_shipper_log_archive_tab
+        where status in (3,4) -- shipper incharge
+
+        UNION
+    
+        SELECT concat(cast(order_id as VARCHAR),'-',cast(order_type as VARCHAR)) as order_uid, order_id, city_id, assign_type, update_time, create_time,status,order_type, experiment_group
+
+        from foody.foody_partner_db__order_assign_shipper_log_tab
+        where status in (3,4) -- shipper incharge
+    )a on a.order_id = oct.id 
+    
+    -- take last incharge
+LEFT JOIN 
+            (SELECT concat(cast(order_id as VARCHAR),'-',cast(order_type as VARCHAR)) as order_uid, order_id, city_id, assign_type, update_time, create_time,status
+    
+            from shopeefood.foody_partner_archive_db__order_assign_shipper_log_archive_tab__reg_daily_s0_live
+            where status in (3,4) -- shipper incharge
+    
+            UNION
+        
+            SELECT concat(cast(order_id as VARCHAR),'-',cast(order_type as VARCHAR)) as order_uid, order_id, city_id, assign_type, update_time, create_time,status
+    
+            from shopeefood.foody_partner_db__order_assign_shipper_log_tab__reg_daily_s0_live
+            where status in (3,4) -- shipper incharge
+        )a_filter on a.order_uid = a_filter.order_uid and a.create_time < a_filter.create_time
+                
+WHERE 1 = 1 
+-- take last incharge
+and a_filter.order_id is null 
+and oct.is_asap = 1
+and oct.status != 9 
+--and date(from_unixtime(oct.final_delivered_time - 3600)) = current_date - interval '1' day
+
+)
+where report_date between date('2021-10-01') and date('2021-10-31')
+and city_name in ('Da Nang City','Hue City','Binh Duong')
+
+GROUP BY 1,2,3,4,5
+                
+                
+                

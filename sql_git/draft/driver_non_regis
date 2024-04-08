@@ -1,0 +1,46 @@
+with data as 
+(SELECT
+date(from_unixtime(a.date_ts - 3600)) as date_ts
+,a.uid 
+,hub.hub_name
+,case when registration_status = 1 then 'Registered'
+      when registration_status = 2 then 'Off'
+      when registration_status = 3 then 'Worked'
+      end as registration_status
+from foody.foody_internal_db__shipper_slot_registration_tab__vn_daily_s0_live a 
+LEFT JOIN shopeefood.foody_internal_db__shipper_config_slot_tab__vn_daily_s0_live b on b.id = a.slot_id
+LEFT JOIN shopeefood.foody_internal_db__shipper_hub_info_tab__reg_daily_s0_live hub on hub.id = b.hub_id 
+where b.hub_id in (7,31,42) 
+)
+,shipper as 
+(SELECT  sm.report_date
+        ,sm.shipper_id
+        ,c.hub_name
+FROM 
+(SELECT 
+case when grass_date = 'current' then date(current_date) 
+     else cast(grass_date as date) end as report_date
+,shipper_id
+,shipper_type_id
+from shopeefood.foody_mart__profile_shipper_master )sm 
+LEFT JOIN foody_bi_anlys.snp_foody_hub_driver_mapping_tab c on c.shipper_id = sm.shipper_id and c.report_date = sm.report_date
+where sm.shipper_type_id = 12
+and c.hub_id in (7,31,42)
+)
+SELECT report_date 
+,hub_name
+,count(case when is_registered = 'Non Registered' then shipper_id else null end) as total_driver
+
+FROM
+(SELECT
+ a.report_date
+,a.shipper_id
+,a.hub_name
+,case when registration_status is not null then 'Registered'
+      else 'Non Registered' end as is_registered
+from shipper a
+left join
+(SELECT * from data )b on b.date_ts = a.report_date and b.uid = a.shipper_id
+where a.report_date >= date('2021-10-25')
+)
+GROUP BY 1,2

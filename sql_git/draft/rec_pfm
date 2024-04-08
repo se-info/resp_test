@@ -1,0 +1,101 @@
+with violation as
+(
+SELECT ht.id as ticket_id
+,tot.order_code
+,case when ht.status = 1 then '1. Open'
+when ht.status = 2 then '2. Pending'
+when ht.status = 3 then '3. Resolved'
+when ht.status = 5 then '4. Completed'
+when ht.status = 4 then '5. Closed'
+else null end as status
+,case when ht.incharge_team = 1 then 'CC'
+when ht.incharge_team = 2 then 'PROJECTOR'
+when ht.incharge_team = 3 then 'EDITOR'
+when ht.incharge_team = 4 then 'GOFAST'
+when ht.incharge_team = 5 then 'PRODUCT SUPPORT'
+when ht.incharge_team = 6 then 'AGENT'
+when ht.incharge_team = 7 then 'AGENT MANAGER'
+else null end as incharge_team
+,case when ht.ticket_type = 1 then 'VIOLATION_OF_RULES'
+when ht.ticket_type = 2 then 'CHANGE_SHIPPER_INFO'
+when ht.ticket_type = 3 then 'FRAUD'
+when ht.ticket_type = 4 then 'CUSTOMER_FEEDBACK'
+when ht.ticket_type = 5 then 'CC_FEEDBACK'
+when ht.ticket_type = 6 then 'NOW_POLICE'
+when ht.ticket_type = 7 then 'MERCHANT_FEEDBACK'
+when ht.ticket_type = 8 then 'PARTNER_SIGNATURE_NOTE'
+when ht.ticket_type = 9 then 'REQUEST_CHANGE_DRIVER_INFO'
+else null end as ticket_type
+
+,case when ht.city_id = 217 then 'HCM'
+when ht.city_id = 218 then 'HN'
+when ht.city_id = 219 then 'DN'
+ELSE 'OTH' end as city_group
+,from_unixtime(ht.create_time - 60*60) as created_timestamp
+,COALESCE(htl.label,'NO_ACTION') resolution
+,case when ht.resolve_time > 0 then from_unixtime(ht.resolve_time - 60*60)
+WHEN ht.update_time > 0 then from_unixtime(ht.update_time - 60*60)
+else null end as resolve_timestamp
+,date_diff('second',from_unixtime(ht.create_time - 60*60), case when ht.resolve_time > 0 then from_unixtime(ht.resolve_time - 60*60) else from_unixtime(ht.update_time - 60*60) end) lt_resolve
+,htu.uid as shipper_id
+,sm.shipper_name
+--,json_extract(ht.extra_data,'$.reporter') as created_by
+, cast(json_extract(ht.extra_data, '$.reporter')as varchar) created_by
+,concat('Note', coalesce(trim(CAST(json_extract(ht.extra_data, '$.description') AS varchar)),'N/A')) description
+
+FROM shopeefood.foody_internal_db__hr_tick_tab__reg_daily_s0_live ht
+LEFT JOIN shopeefood.foody_internal_db__hr_tick_label_tab__reg_daily_s0_live htl on htl.tick_id = ht.id
+LEFT JOIN shopeefood.foody_internal_db__hr_tick_user_tab__reg_daily_s0_live htu on htu.tick_id = ht.id
+LEFT JOIN shopeefood.foody_mart__profile_shipper_master sm on sm.shipper_id = htu.uid and sm.grass_date = 'current' and sm.grass_region = 'VN'
+LEFT JOIN shopeefood.foody_internal_db__hr_tick_order_tab__reg_daily_s0_live tot ON (ht.id = tot.tick_id)
+WHERE 1=1
+and ht.incharge_team = 4
+--and htu.uid = 19238880
+and date(from_unixtime(ht.create_time - 60*60)) >= date(current_date) - interval '90' day
+and date(from_unixtime(ht.create_time - 60*60)) < date(current_date)
+)
+,shipper as 
+(SELECT 
+         sm.shipper_id
+        ,sm.city_name
+        ,date_diff('day',date(from_unixtime(wt.create_time - 3600)),date(current_date) - interval '1' day) as seniority
+        ,current_driver_tier
+        ,bl.deposit*1.00/100 as deposit
+        ,count(case when a.resolution = 'FINE_SHIPPER' then a.shipper_id else null end) as total_violation
+
+FROM shopeefood.foody_mart__profile_shipper_master sm 
+LEFT JOIN shopeefood.foody_internal_db__shipper_info_work_tab__reg_daily_s0_live wt on wt.uid = sm.shipper_id 
+LEFT JOIN violation a on a.shipper_id = sm.shipper_id 
+LEFT JOIN
+(SELECT cast(from_unixtime(bonus.report_date - 60*60) as date) as report_date
+,bonus.uid
+,case
+when bonus.tier in (1,6,11) then 'T1' 
+when bonus.tier in (2,7,12) then 'T2'
+when bonus.tier in (3,8,13) then 'T3'
+when bonus.tier in (4,9,14) then 'T4'
+when bonus.tier in (5,10,15) then 'T5'
+else null end as current_driver_tier
+FROM shopeefood.foody_internal_db__shipper_daily_bonus_log_tab__reg_daily_s0_live bonus
+GROUP BY 1,2,3
+)bonus on sm.shipper_id = bonus.uid and bonus.report_date = current_date - interval '1' day
+LEFT JOIN shopeefood.foody_accountant_db__partner_balance_tab__reg_daily_s0_live bl on bl.user_id = sm.shipper_id 
+
+WHERE 1 = 1 
+and sm.shipper_status_code = 1
+and sm.grass_date = 'current'
+and sm.shipper_type_id = 11 
+and sm.city_id in (217,218)
+GROUP BY 1,2,3,4,5   
+        )
+
+SELECT *
+FROM shipper
+
+
+
+
+
+
+
+
