@@ -257,9 +257,9 @@ from shopeefood.foody_accountant_db__partner_transaction_tab__reg_daily_s0_live
 )
 
 WHERE 1 = 1                                          
-AND (note = 'HUB_MODEL_Thuong tai xe guong mau tuan '||'${date_range_week}'
+AND (TRIM(note) = 'HUB_MODEL_Thuong tai xe guong mau tuan '||'${date_range_week}'
      OR 
-     note =  'HUB_MODEL_Thuong tai xe guong mau chu nhat tuan '||'${date_range_sunday}'
+     TRIM(note) =  'HUB_MODEL_Thuong tai xe guong mau chu nhat tuan '||'${date_range_sunday}'
      )     
 GROUP BY 1) cp 
     on cp.user_id = mw.shipper_id
