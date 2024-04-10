@@ -20,6 +20,8 @@ SELECT distinct
 
 FROM shopeefood.foody_delivery_admin_db__admin_order_payment_adjustment_tab__vn_daily_s0_live mco
 
+-- foody_accountant_db__accountant_partner_transaction_adjustment_tab__vn_daily_s0_live
+
 LEFT JOIN (SELECT * FROM shopeefood.shopeefood_mart_dwd_foody_partner_db_driver_order_tab_vn_da WHERE date(dt) = current_date - interval '1' day) dot 
     on dot.ref_order_id = mco.order_id
     and dot.ref_order_category = 0
