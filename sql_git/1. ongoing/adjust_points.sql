@@ -33,7 +33,7 @@ left join shopeefood.foody_partner_db__order_point_log_tab__reg_daily_s0_live p
         and p.order_type = a.order_type
 where 1 = 1 
 and a.shipper_id > 0 
-and a.order_status in ('Delivered','Quit','Returned')
+and a.order_status in ('Delivered','Quit')
 )
 ,f as 
 (select 
