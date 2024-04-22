@@ -53,6 +53,25 @@ select
 
 from hub_inshift
 group by 1,2
+;
+-- out shift and non hub income
+with raw as 
+(select * from driver_ops_driver_performance_tab
+where shipper_tier != 'Hub'
+and total_order > 0
+-- and hub_order = 0 
+and report_date between date'2024-04-08' and date'2024-04-14'
+and city_name in ('HCM City','Ha Noi City')
+)
+select 
+        report_date,
+        'HCM & HN' as  city_name,
+        count(distinct shipper_id) as a1,
+        sum(online_hour) as online_hour,
+        sum(driver_income - driver_other_income - driver_daily_bonus) as ship_shared,
+        sum(driver_daily_bonus) as driver_daily_bonus
+from raw
 
+group by 1,2
 
 
