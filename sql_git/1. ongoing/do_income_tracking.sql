@@ -146,4 +146,30 @@ select
 from k 
 group by 1,2
 
+;
+-- ver 2
+select 
+        report_date,
+        shipper_city,
+        -- driver_type_v2,
+        count(distinct (shipper_id,report_date)) as a1,
+        count(distinct case when total_bill_delivery > 0 then (shipper_id,report_date) else null end) as a1_delivery,
+        count(distinct case when total_bill_spxi > 0 then (shipper_id,report_date) else null end) as a1_spxi,
+        sum(total_bill) as total_ado,
+        sum(total_bill_delivery) as delivery_ado,
+        sum(total_bill_spxi) as spxi_ado,
+        sum(total_bill_delivery)*1.0000/count(distinct (shipper_id,report_date)) as driver_ado_delivery,
+        sum(total_ship_shared)+sum(total_other_income)+sum(driver_daily_bonus) as total_earning,
+        sum(ship_shared_delivery)+sum(other_income_delivery)+sum(daily_bonus_delivery) as delivery_earning,
+        sum(ship_shared_spxi)+sum(other_income_spxi)+sum(daily_bonus_spxi) as spxi_earning
+
+
+from dev_vnfdbi_opsndrivers.driver_ops_driver_income_tracking_tab
+where (
+report_date between date'2023-04-30' - interval '7' day and date'2023-04-30'
+or 
+report_date = date'2023-05-01'
+)
+group by 1,2
+
 
