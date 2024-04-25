@@ -1,3 +1,4 @@
+-- re calculated shipping fee of group order 
 with raw_order_tab as 
 (select 
         coalesce(date(raw.delivered_timestamp),created_date) as delivered,
