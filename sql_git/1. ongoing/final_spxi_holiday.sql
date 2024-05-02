@@ -38,7 +38,7 @@ group by 1
 (select 
         *,
         case 
-        when district_filter >= 5  and working_days >= 5 and total_qualified_online >= 5 and total_qualified_sla >= 5 then 
+        when total_day_qualified_district >= 5  and working_days >= 5 and total_qualified_online >= 5 and total_qualified_sla >= 5 then 
         (case when total_order >= 70 then 350000 else 0 end)
         else 0 end as bonus_value
 
