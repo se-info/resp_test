@@ -38,8 +38,8 @@ group by 1
 (select 
         *,
         case 
-        when district_filter > 2 and working_days >= 2 and total_qualified_online >= 2 and total_qualified_sla >= 2 then 
-        (case when total_order >= 45 then 120000 else 0 end)
+        when district_filter >= 5  and working_days >= 5 and total_qualified_online >= 5 and total_qualified_sla >= 5 then 
+        (case when total_order >= 70 then 350000 else 0 end)
         else 0 end as bonus_value
 
 from
@@ -64,7 +64,7 @@ left join
 (select 
         shipper_id,
         max_by(city_name,report_date) as city_name,
-        count(distinct case when greatest(online_hour,work_hour) >= 8 then report_date else null end) as total_qualified_online,
+        count(distinct case when greatest(online_hour,work_hour) >= 5 then report_date else null end) as total_qualified_online,
         count(distinct case when sla_rate >= 95 then report_date else null end) as total_qualified_sla
 
 from driver_ops_driver_performance_tab
