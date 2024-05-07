@@ -1,13 +1,13 @@
 with txn_tab as 
 (select
         date(from_unixtime(create_time-3600)) create_time,
-         date_trunc('month',date(from_unixtime(create_time-3600))) as month_
+        date_trunc('month',date(from_unixtime(create_time-3600))) as month_
         ,id
         -- ,previous_balance/100+ previous_deposit/100 as total_balance
         ,user_id
         ,sum(balance*1.000/100) over (partition by user_id order by id asc rows between unbounded preceding and current row) as balance
         ,sum(deposit/100) over (partition by user_id order by id asc rows between unbounded preceding and current row) as deposit
-        ,row_number()over(partition by user_id order by id desc) as rank_
+        ,row_number()over(partition by user_id,date(from_unixtime(create_time-3600)) order by id desc) as rank_
         --,sum(balance/100) over (partition by user_id order by id asc rows between unbounded preceding and current row) + sum(deposit/100) over (partition by user_id order by id asc rows between unbounded preceding and current row) as total_balance
 
 from shopeefood.foody_accountant_db__partner_transaction_tab__reg_daily_s0_live
@@ -31,13 +31,13 @@ group by 1
         dp.shipper_id,
         if(cardinality(filter(agg.delivered_date_agg,x -> x = dp.report_date)) > 0,true,false) as is_a1,
         if(cardinality(filter(agg.delivered_date_agg,x -> x between dp.report_date - interval '29' day and dp.report_date)) > 0,true,false) as is_a30,
-        min_by(txn.deposit,txn.rank_) as deposit
+        max_by(txn.deposit,txn.create_time) as deposit
 
 from driver_ops_driver_performance_tab dp 
 
 left join agg_tab agg on agg.shipper_id = dp.shipper_id
 
-left join txn_tab txn on txn.user_id = dp.shipper_id and txn.create_time <= dp.report_date 
+left join txn_tab txn on txn.user_id = dp.shipper_id and txn.create_time <= dp.report_date and txn.rank_ = 1
 
 
 where 1 = 1 
@@ -45,7 +45,8 @@ and dp.report_date between date_trunc('month',current_date) - interval '2' month
 and regexp_like(coalesce(dp.city_name,'na'),'na|Dien Bien|test|Test') = false
 group by 1,2,3,4,5
 )
-select 
+-- select * from f where deposit is null and (is_a1 = true or is_a30 = true) LIMIT 200
+select
         month_,
         case 
         when deposit <=0 then '1. Non Deposit'
@@ -61,6 +62,7 @@ select
                 /cast(count(distinct case when is_a30 = true then (report_date) else null end) as double) as a30
 
 from f 
-
+where 1 = 1 
+and (is_a1 = true or is_a30 = true)
 group by 1,2
 
