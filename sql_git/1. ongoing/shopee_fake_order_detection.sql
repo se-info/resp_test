@@ -50,6 +50,7 @@ group by 1
         dp.city_name as shipper_city_name,
         if(raw.cod_value>0,'cod','non_cod') as pay_type,
         r.city_name as order_city_name,
+        di.name_en as district_name,
         r.order_status,
         r.group_id,
         img.image_urls_agg,
@@ -70,6 +71,8 @@ group by 1
 
 FROM shopeefood.foody_express_db__shopee_booking_tab__reg_daily_s0_live raw
 
+LEFT JOIN (select id,name_en from shopeefood.foody_delivery_db__district_tab__reg_daily_s0_live) di on di.id = raw.district_id
+
 LEFT JOIN driver_ops_raw_order_tab r on r.order_code = raw.code and r.order_type = 6 
 
 LEFT JOIN seller_info si on si.user_name = cast(json_extract(extra_data,'$.sender_info.username') as varchar)
@@ -84,7 +87,7 @@ LEFT JOIN (select order_code,count(distinct (order_code,created_ts)) as num_deny
 
 CROSS JOIN UNNEST (CAST(JSON_EXTRACT(raw.extra_data,'$.items') AS ARRAY<JSON>)) AS z(item_name)
 
-group by 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22
+group by 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23
 )
 select * from 
 (select  

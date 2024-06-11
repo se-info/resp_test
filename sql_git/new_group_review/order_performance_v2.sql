@@ -10,17 +10,17 @@ with ogm as
 from shopeefood.shopeefood_mart_dwd_foody_partner_db_order_group_mapping_tab_vn_da ogm 
 
 left join 
-(select ref_order_id,ref_order_category,delivery_cost*1.0000/100 as single_fee,order_status
+(select group_id,ref_order_id,ref_order_category,delivery_cost*1.0000/100 as single_fee,order_status
 from shopeefood.shopeefood_mart_dwd_foody_partner_db_driver_order_tab_vn_da 
 where date(dt) = current_date - interval '1' day
-) dot on dot.ref_order_id = ogm.ref_order_id
+) dot on dot.group_id = ogm.group_id
+      and dot.ref_order_id = ogm.ref_order_id  
       and dot.ref_order_category = ogm.ref_order_category
 left join shopeefood.foody_partner_archive_db__shipper_hub_order_tab__reg_continuous_s0_live hub
     on hub.ref_order_id = ogm.ref_order_id
     and hub.ref_order_category = ogm.ref_order_category
 
 where date(dt) = current_date - interval '1' day
-
 group by 1,2
 ) 
 ,group_info as 
@@ -91,21 +91,23 @@ from
 (select  
         raw.created_date,
         raw.group_id,
+        max_by(raw.order_assign_type,raw.id) as order_type,
         count(distinct raw.order_code) as total_order_in_group
 
 from driver_ops_raw_order_tab raw
 where raw.driver_policy != 2 
 and raw.order_type = 6 
-and raw.created_date between date'2024-01-15' and current_date - interval '1' day
-and raw.order_status = 'Delivered'
+and raw.created_date between date'2024-01-15' and date'2024-01-21'
+and raw.order_status in ('Delivered','Returned')
 and raw.group_id > 0 
 group by 1,2
 ) raw 
 left join metrics m 
         on m.group_id = raw.group_id 
 )
-select 
+select
         fee_segment,
+        -- if(order_type = 'Group',1,2) as type_,
         total_order_in_group,
         count(distinct group_id) as cnt_group,
         sum(total_order_in_group) as cnt_order,
@@ -113,5 +115,5 @@ select
         avg(group_fee) as avg_group_fee,
         1 - sum(group_fee)/cast(sum(single_fee) as double) as saving_single
 from s  
-group by 1,2 
+group by 1,2
 LIMIT 100 

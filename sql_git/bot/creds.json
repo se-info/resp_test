@@ -1,0 +1,12 @@
+{
+  "type": "service_account",
+  "project_id": "hikingcrypto-1615447011364",
+  "private_key_id": "8998c606200a38259d31f07c07830ec34515eea6",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC1pkiEDiWbBktQ\nU1P5Q3qsm7AM6D425xzS6NlrGXlcewORTo4vjypKmrS8PilLOq3jHT4RSPtxQwVZ\nqFYaI0yhLJT1HKz8YaUcyOdASDw7NXTCuOrM7jJ7jvmIjBOd3DBoX9Gc97ngXWlY\nf0XsXqbMROAe3Q1KNGA6FRzGpGllj1V1C8b6aTG7c4oWloq8wf6aY5pLenE7VQAU\nkedWlOPkDqyorRrz7YQUXVEJSlcG8oLIL4Sth5Qx2o8uCB2JQFlqIcrCkYqWzmYk\nAy1/KkOZX8U2pSwCb6b+KGrcuGExl9zfv0FDfmMT4UXKwMXiFgwT45m4Qn+E3MfQ\nzWcSwZ/vAgMBAAECggEAB6W1iUd5omBuLn2WP7jtQtBBkIbgfIg7TECuhFXr0uPy\nO6unWqaptaKtKYr4LqIa89zzk7UMI//vJ8iianKCU6YSHOIKj29+8GcDSjLnbq/O\nKWw/bBtW2xLqH3JbIGWb+3DrB5bdoHv6tVWvsU4veWDTYDPsh+thV7X6Youa2zQH\nh0eHZiwihH32c67eXeIv/vCOcXLklQfQojws9yYVJ0eeaaE62/jISCrxnzRaP4Sx\nq1h4o0d7QNksKHyGWvbTIrYUpn5zIENyQlWUxvX1O77LrH3NVAFCr/AmZC7+wP2O\nk3lr9vHY31euoyEGrFc8aqVHKgT26+Zxoa5gYG6kIQKBgQDq8m+B2XEtuEaGBeY4\nvbHqiMYUYNJf7u6AFNXx8kW5sAAYI5NZMd3IpFOvHau7odLRDqgc1FMTg6phyFwr\nGVouC+IXo9eQ22eKO5JSC2cMElJA+/jGfzfIsp4c+RTaGyx/9GWcvoF7im4XT1n/\nEwNCM2iUKgcnV/WdihIE6rX2IQKBgQDF7Tsgt7YBzK/X4sWAbW+wf5D4zMYzByKl\n+XaOn197hZmwVm6LCDRRT6+mc/7tgwGNcSSu/dlyPgh0S9RVahKv04UQfxXJK4gH\nFsgGHohot0MuA+gRsZj4lNCHFhKwu+zAS3NDIgy9xrV/zNdxCTeN2b7xWjK90vMi\n/HeCvem0DwKBgCFtFIg4021Zxk7TEAoKkwF3LBdCHywe5je6vyWI/nqIm7rTdOc/\nvPoKxw0m/4PWZhPwLeLMInWoSdlXlCVdmgLrFeOfH9AwJu73wr2Becux35n3P1Ge\nT+Vx5CTjGyBctVwO/VXrlKhq7XbLh1ZO8iu8/Kf3wsTKMtuTBTVF31WBAoGBAKeG\nz4g21vAY/zFcuUyl1GZw4xUjxhLE1FflmarITLoxb89oqPI3BIlaSFM8VSdVvoeo\nn6MaK+XdiaxdzqBpQt3dzAAVgSwgE2fkqXM8frsbetpE5jWru82TsBjW3wUGWzK7\n6hiFhoFO4qsEh8oeQg5noo2IifBP0Anp5YIdGuWTAoGBAJv0cQ8thUPmBlY3j3Pt\nOGbHEAnRQMIX2l92rAeibZsOTcs6UjiCFkt4MZmvxevaqj4/EomGVHwpaTUwl9Qn\nFI2MvhuAsOkAPtqvEppIs9SDo5BRk2Zs3rg8w8NPatdy0zguKfXzZOC+Da4/0ZZP\nn7s2lm1K07pu5/DNdmckx5n1\n-----END PRIVATE KEY-----\n",
+  "client_email": "bot-crypto1@hikingcrypto-1615447011364.iam.gserviceaccount.com",
+  "client_id": "117310061057783840001",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/bot-crypto1%40hikingcrypto-1615447011364.iam.gserviceaccount.com"
+}

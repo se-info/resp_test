@@ -179,7 +179,16 @@ class GroupStatus(EnumBase):
 2: paid
 3: fail
 4: refunded
-
+-- OrderPaidStatus
+NOT_PAID = 1
+PAID = 2
+DEBT = 3
+WAIT = 4
+NEED_REFUND = 5
+REFUNDED = 6
+--
+payment_method = 1 THEN 'Cash'
+payment_method = 6 THEN 'ShopeePay'
 ---compare string
 select levenshtein_distance('Phong 123', 'Phong 123 đi vô hẻm')
 
@@ -549,3 +558,5 @@ Class TimeRangeSettingType(EnumBase):
 DAY_OF_WEEK = 1
 CUSTOM_DATE = 2
 DEFAULT = 
+;
+shopeefood_merchant.foody_merchant_db__restaurant_prepare_time_with_time_ranges_tab__reg_daily_s0_live - get whitelist DA 
