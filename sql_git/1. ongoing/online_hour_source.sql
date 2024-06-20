@@ -54,7 +54,7 @@ LEFT JOIN list_time_range lt
         start_time,
         end_time,
         CASE 
-        WHEN start_time <= checkin_time and checkout_time <= end_time THEN DATE_DIFF('second',LEAST(checkin_time,start_time),LEAST(checkout_time,end_time))
+        WHEN start_time <= checkin_time and checkout_time <= end_time THEN DATE_DIFF('second',GREATEST(checkin_time,start_time),LEAST(checkout_time,end_time))
         WHEN start_time >= checkin_time and start_time <= checkout_time and checkout_time < end_time THEN DATE_DIFF('second',GREATEST(checkin_time,start_time),LEAST(checkout_time,end_time))
         WHEN start_time <= checkin_time and checkin_time <= end_time and end_time <= checkout_time THEN DATE_DIFF('second',GREATEST(checkin_time,start_time),LEAST(checkout_time,end_time))
         WHEN start_time >= checkin_time and end_time <= checkout_time THEN DATE_DIFF('second',GREATEST(checkin_time,start_time),LEAST(checkout_time,end_time)) 

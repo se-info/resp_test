@@ -77,15 +77,18 @@ and date(delivered_timestamp) >= date'2023-10-01'
 and raw.order_status IN ('Delivered','Quit','Returned')
 and raw.shipper_id > 0 
 )
-SELECT 
-        IF(group_id > 0,group_id,id),
+,sub_raw AS
+(SELECT 
+        report_date,
+        shipper_id,
+        IF(group_id > 0,group_id,id) AS id,
+        mapping,
+        COUNT(DISTINCT id) AS total_order_in_group,
         max_by(last_incharge_timestamp,id) as last_incharge_timestamp,
         max_by(delivered_timestamp,id) as delivered_timestamp
 
 FROM order_raw
-where shipper_id = 9407689
-and report_date = date'2024-06-19'
-group by 1
+group by 1,2,3,4)
 ,o AS 
 (SELECT 
         ol.*,
@@ -93,7 +96,7 @@ group by 1
         lt.end_time,
         lt.date_
 
-FROM order_raw ol 
+FROM sub_raw ol 
 
 LEFT JOIN list_time_range lt 
         ON lt.mapping = ol.mapping
@@ -108,16 +111,14 @@ SELECT *,work_by_hour*1.0000/60
 FROM
 (SELECT 
         report_date,
-        shipper_id,
-        group_id,   
-        order_code,
+        shipper_id,   
+        id,
         start_time,
         end_time,
         delivered_timestamp,
         last_incharge_timestamp,
-        order_status,
         CASE 
-        WHEN start_time <= last_incharge_timestamp and delivered_timestamp <= end_time THEN DATE_DIFF('second',LEAST(last_incharge_timestamp,start_time),LEAST(delivered_timestamp,end_time))
+        WHEN start_time <= last_incharge_timestamp and delivered_timestamp <= end_time THEN DATE_DIFF('second',GREATEST(last_incharge_timestamp,start_time),LEAST(delivered_timestamp,end_time))
         WHEN start_time >= last_incharge_timestamp and start_time <= delivered_timestamp and delivered_timestamp < end_time THEN DATE_DIFF('second',GREATEST(last_incharge_timestamp,start_time),LEAST(delivered_timestamp,end_time))
         WHEN start_time <= last_incharge_timestamp and last_incharge_timestamp <= end_time and end_time <= delivered_timestamp THEN DATE_DIFF('second',GREATEST(last_incharge_timestamp,start_time),LEAST(delivered_timestamp,end_time))
         WHEN start_time >= last_incharge_timestamp and end_time <= delivered_timestamp THEN DATE_DIFF('second',GREATEST(last_incharge_timestamp,start_time),LEAST(delivered_timestamp,end_time)) 
@@ -130,10 +131,11 @@ FROM
         ELSE 0 END AS rule_checked
 FROM o 
 WHERE 1 = 1 
-AND (report_date = date_ OR incharged_date = date_)
+AND (report_date = date_ OR date(last_incharge_timestamp) = date_)
 )
 WHERE rule_checked > 0
 AND shipper_id = 9407689
+-- AND id = 75124571
 -- AND order_code = '19064-422249453'
 AND report_date = current_date - interval '1' day
 -- GROUP BY 1,2,3
