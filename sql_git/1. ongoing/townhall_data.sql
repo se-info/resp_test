@@ -34,21 +34,17 @@ FROM dev_vnfdbi_opsndrivers.driver_ops_driver_performance_tab dp
 LEFT JOIN agg_driver agg 
     on agg.shipper_id = dp.shipper_id
 
-WHERE 1 = 1 )
-
-SELECT 
-        date_trunc('month',report_date) as period,
-        -- report_date,
+WHERE 1 = 1 
+AND REGEXP_LIKE(city_name,'Dien Bien|Test|Stres') = FALSE
+)
+,a1_a30 as 
+(SELECT 
+        date_trunc('month',report_date) as month_,
         SUM(a1)/CAST(COUNT(DISTINCT report_date) AS DOUBLE) AS a1,
         SUM(a30)/CAST(COUNT(DISTINCT report_date) AS DOUBLE) AS a30,
-        -- SUM(a60)/CAST(COUNT(DISTINCT report_date) AS DOUBLE) AS a60,
-        -- SUM(a90)/CAST(COUNT(DISTINCT report_date) AS DOUBLE) AS a90,
-        -- SUM(a120)/CAST(COUNT(DISTINCT report_date) AS DOUBLE) AS a120,
-        SUM(a1)/CAST(SUM(a30) AS DOUBLE) AS a1_a30,
-        SUM(total_order)/CAST(SUM(a1) AS DOUBLE) AS ado,
-        SUM(online_hour)/CAST(SUM(a1) AS DOUBLE) AS online_hour,
-        SUM(work_hour)/CAST(SUM(a1) AS DOUBLE) AS work_hour,
-        SUM(down_hour)/CAST(SUM(online_hour) AS DOUBLE) AS pct_down_time
+        SUM(a60)/CAST(COUNT(DISTINCT report_date) AS DOUBLE) AS a60,
+        SUM(a90)/CAST(COUNT(DISTINCT report_date) AS DOUBLE) AS a90,
+        SUM(a120)/CAST(COUNT(DISTINCT report_date) AS DOUBLE) AS a120
 
 FROM 
 (SELECT 
@@ -71,5 +67,48 @@ FROM
 FROM metrics m 
 GROUP BY 1,2 
 ) m
-where report_date between date'2022-12-01' and date'2023-12-31'
+WHERE (report_date >= DATE'2023-06-01' AND report_date <= DATE'2023-06-30'
+or report_date >= DATE'2024-06-01' AND report_date <= DATE'2024-06-30')
 group by 1
+)
+,raw AS
+(SELECT 
+        DATE_TRUNC('month',ic.date_) AS month_,
+        ic.date_,
+        ic.current_driver_tier,
+        ic.partner_id,
+        ic.total_earning_before_tax,
+        ic.total_earning_hub,
+        ic.total_earning_non_hub,
+        ic.city_name_full,
+        ic.total_bill,
+        (ic.total_bill_food + ic.total_bill_market) AS total_delivery_ado,
+        (ic.total_bill_now_ship + ic.total_bill_now_ship_shopee + ic.total_bill_now_ship_instant 
+                + ic.total_bill_now_ship_food_merchant + ic.total_bill_now_ship_sameday) AS total_spxi_ado
+
+FROM vnfdbi_opsndrivers.snp_foody_shipper_income_tab ic
+
+WHERE (ic.date_ >= DATE'2023-06-01' AND ic.date_ <= DATE'2023-06-30'
+or ic.date_ >= DATE'2024-06-01' AND ic.date_ <= DATE'2024-06-30')
+)
+SELECT 
+        raw.month_,
+        a.a1,
+        a.a30,
+        a.a60,
+        a.a90,
+        SUM(raw.total_bill)/CAST(COUNT(DISTINCT raw.date_) AS DOUBLE) AS total_ado,
+        SUM(raw.total_delivery_ado)/CAST(COUNT(DISTINCT raw.date_) AS DOUBLE) AS total_delivery_ado,
+        SUM(raw.total_spxi_ado)/CAST(COUNT(DISTINCT raw.date_) AS DOUBLE) AS total_spxi_ado,
+        AVG(total_earning_before_tax) AS daily_income,
+        AVG(total_earning_hub) AS daily_income_hub,
+        AVG(total_earning_non_hub) AS daily_income_non_hub
+
+
+FROM raw 
+
+LEFT JOIN a1_a30 a ON a.month_ = raw.month_
+
+GROUP BY 1,2,3,4,5
+
+
