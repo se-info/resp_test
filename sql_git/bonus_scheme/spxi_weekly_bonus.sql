@@ -60,8 +60,8 @@ LEFT JOIN driver_ops_driver_performance_tab dp ON dp.shipper_id = f.shipper_id a
         COUNT(DISTINCT CASE WHEN sla_rate >= 95 THEN report_date ELSE NULL END) AS qualified_sla,
         CASE 
         WHEN COUNT(DISTINCT CASE WHEN online_hour >= 8 AND sla_rate >= 95 THEN report_date ELSE NULL END) > 5 AND SUM(e2c+c2c) >= 180 then 300000
-        WHEN COUNT(DISTINCT CASE WHEN online_hour >= 8 AND sla_rate >= 95 THEN report_date ELSE NULL END) >= 5 AND SUM(e2c+c2c) BETWEEN 150 and 179 then 150000
-        WHEN COUNT(DISTINCT CASE WHEN online_hour >= 8 AND sla_rate >= 95 THEN report_date ELSE NULL END) >= 4 AND SUM(e2c+c2c) BETWEEN 120 and 149 then 100000
+        WHEN COUNT(DISTINCT CASE WHEN online_hour >= 8 AND sla_rate >= 95 THEN report_date ELSE NULL END) >= 5 AND SUM(e2c+c2c) >= 150 then 150000
+        WHEN COUNT(DISTINCT CASE WHEN online_hour >= 8 AND sla_rate >= 95 THEN report_date ELSE NULL END) >= 4 AND SUM(e2c+c2c) >= 120 then 100000
         ELSE 0 END AS bonus_value
 
 FROM m 
