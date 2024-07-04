@@ -1,0 +1,46 @@
+hub_polygons_1st_layer = []
+for i in range(hub_final.shape[0] - 3):
+    hub_area = []
+    for y in [x.split(' ') for x in re.sub('POLYGON ', '', hub_final['WKT'][i]).strip('()').split(', ')]:
+        hub_area.append(tuple(float(z) for z in y))
+    hub_polygons_1st_layer.append(Polygon(hub_area))
+for i in hub_polygons_1st_layer:
+    print(i.contains(point))
+print('-----')    
+hub_polygons_overlap_layer = []
+for i in range(6, 9, 1):
+    hub_area = []
+    for y in [x.split(' ') for x in re.sub('POLYGON ', '', hub_final['WKT'][i]).strip('()').split(', ')]:
+        hub_area.append(tuple(float(z) for z in y))
+    hub_polygons_overlap_layer.append(Polygon(hub_area))
+for i in hub_polygons_overlap_layer:
+    print(i.contains(point))
+
+
+def partition_on_index(it, indices):
+    indices = set(indices)   # convert to set for fast lookups
+    l1, l2 = [], []
+    for idx, element in enumerate(it):
+        if idx in indices:
+            l2.append(element)
+        else:
+            l1.append(element)
+    return l1, l2
+pick_point1, pick_point2 = partition_on_index(pick_point, qualified_1st_layer)
+drop_point1, drop_point2 = partition_on_index(drop_point, qualified_1st_layer)
+
+is_qualified_hub = 0
+qualified_1st_layer = []
+for i in range(len(hub_polygons)):
+    print('hub element: ', i+1, sum([a and b for a, b in zip([hub_polygons_1st_layer[i].contains(x) for x in pick_point], [hub_polygons_1st_layer[i].contains(x) for x in drop_point])]))
+    qualified_1st_layer.extend([i for i,x in enumerate([a and b for a, b in zip([hub_polygons_1st_layer[i].contains(x) for x in pick_point], [hub_polygons_1st_layer[i].contains(x) for x in drop_point])]) if x])
+    is_qualified_hub += sum([a and b for a, b in zip([hub_polygons_1st_layer[i].contains(x) for x in pick_point], [hub_polygons_1st_layer[i].contains(x) for x in drop_point])])
+print(is_qualified_hub)
+
+is_qualified_overlap_hub = 0
+for i in range(len(hub_polygons_overlap_layer)):
+    print('overlap hub element: ', i+1, sum([a and b for a, b in zip([hub_polygons_overlap_layer[i].contains(x) for x in pick_point1], [hub_polygons_overlap_layer[i].contains(x) for x in drop_point1])]))
+    is_qualified_overlap_hub += sum([a and b for a, b in zip([hub_polygons_overlap_layer[i].contains(x) for x in pick_point1], [hub_polygons_overlap_layer[i].contains(x) for x in drop_point1])])
+print(is_qualified_overlap_hub)
+print('total qualified new hub: ', is_qualified_hub+is_qualified_overlap_hub)
+print('total qualified old hub: ', raw_1006['is_order_qualified_hub'].notnull().sum())

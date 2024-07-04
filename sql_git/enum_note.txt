@@ -1,0 +1,562 @@
+
+DRAFT = 1
+RECEIVED = 2
+PROCESSING = 3
+VERIFIED = 4
+ASSIGNED = 5
+PICKED = 6
+DELIVERED = 7
+CANCEL = 8
+QUIT = 9
+REASSIGNED = 10
+CONFIRMED = 13
+INCHARGED = 11
+DENIED = 12
+M_ASSIGNED = 14
+M_RECEIVED = 15
+M_TIMEOUT = 16
+M_OUT_OF_SERVICE = 17
+M_COOKED = 18
+M_CHANGED = 19
+CAN_NOT_CONNECT = 20
+AUTO_ASSIGN = 21
+AUTO_ASSIGN_TIMEOUT = 22
+PENDING = 23
+REJECTED = 24
+FAILED = 25
+CLOSE = 26
+U_DELIVERED = 27
+AUTO_CONFIRM_MERCHANT = 16
+ITEM_QUANTITY_EXCESS = 17
+READY_FOR_PARTNER = 18
+order status log tab
+-----
+PENDING = 1
+# Assigning
+ASSIGNING = 100
+ASSIGNING_MANUAL = 101
+ASSIGNING_TIMEOUT = 102
+# Processing
+COLLECTING = 200
+DELIVERING = 201
+DELIVERING_RETRY = 202
+RETURNING = 203
+RETURNING_TO_HUB = 204
+# Error
+DENIED = 300
+COLLECTING_FAILED = 301
+# Complete
+DELIVERED = 400
+QUIT = 401
+USER_CANCELLED = 402
+SYSTEM_CANCELLED = 403
+EXTERNAL_CANCELLED = 404
+RETURN_SUCCESS = 405
+RETURN_FAILED = 406
+RETURN_TO_HUB = 407
+
+--
+906 ship shared
+907 daily bonus
+txn tab
+---
+DriverDenyType(EnumBase):
+	DRIVER_FAULT = 1
+	ORDER_FAULT = 10
+	ORDER_PENDING = 11
+	SYSTEM_FAULT = 20
+deny tab
+----
+assign log
+8,9:ignore
+2,14,15: denied
+
+snp_foody_order_performance_tab ---> performance của all food/market (có filter hub) , vol, các thể loại
+17:48
+snp_foody_nowship_performance_tab --> nowship
+17:48
+snp_foody_hub_driver_report_tab --> driver hub performance
+17:48
+snp_foody_hub_driver_mapping_tab --> mapping driver vs hub theo grass_date
+
+
+------
+city_id	city_name
+217	 HCM City 
+218	 Ha Noi City 
+219	Da Nang City 
+220	 Hai Phong City 
+221	Can Tho City 
+222	 Dong Nai  
+223	 Vung Tau 
+228	Bac Ninh 
+230	Binh Duong 
+238	Điện Biên
+248	 Khanh Hoa 
+254	 Lam Dong 
+257	 Nghe An 
+263	 Quang Nam 
+265	Quang Ninh
+271	 Thai Nguyen 
+273	 Hue City 
+
+
+---- In app contract
+
+SUPPLEMENTING_INFORMATION = 1 
+GENERATING = 10
+READY_TO_SIGN = 11 
+GENERATING_SIGNATURE = 12
+READY_TO_SUBMIT = 13 
+REVIEWING = 20 
+REVIEWING_WITH_ISSUE = 21 
+COMPLETED = 30 
+REJECTED = 40
+
+-- Econtract - contract_tab
+
+   SAMPLE = 0
+   READY_TO_SIGN = 1
+   SIGNED = 2
+   CANCELLED = 3
+
+
+--- category 
+,case when dot.ref_order_category = 0 then 'order_delivery'
+when dot.ref_order_category = 3 then 'now_moto'
+when dot.ref_order_category = 4 then 'now_ship'
+when dot.ref_order_category = 5 then 'now_ship'
+when dot.ref_order_category = 6 then 'now_ship_shopee'
+when dot.ref_order_category = 7 then 'now_ship_sameday'
+else null end source
+
+-driver service
+DEFAULT = -1
+DELIVERY = 0
+EXPRESS = 1
+SHOPEE = 2
+NOWMOTO = 3
+NOWSHIP = 4
+NOWSHIP_MERCHANT = 5
+NOWSHIP_SHOPEE = 6
+NOWSHIP_SAME_DAY = 7
+NOWSHIP_MULTI_DROP = 8
+
+--foody service
+1        = Food
+3        = Laundry
+4        = Mart
+5        = Fresh
+6        = Flowers
+7        = Medicine
+12        = Pets
+13        = Liquor
+15        = Salon
+10        = Maid"
+
+
+---group mapping status 
+    DOING = 1
+    PICKED = 10
+    DONE = 11
+    USER_CANCELLED = 20
+    SYSTEM_CANCELLED = 21
+    DRIVER_DENIED = 22
+    QUIT = 23
+    MERCHANT_CLOSED = 24
+    TAKEN_BACK_BY_SYSTEM = 25
+
+---group info status 
+class GroupStatus(EnumBase):
+
+    PROCESSING = 1
+    COMPLETED = 10
+    DELETED = 11
+
+--merchant paid status 
+
+1: un_paid
+2: paid
+3: fail
+4: refunded
+-- OrderPaidStatus
+NOT_PAID = 1
+PAID = 2
+DEBT = 3
+WAIT = 4
+NEED_REFUND = 5
+REFUNDED = 6
+--
+payment_method = 1 THEN 'Cash'
+payment_method = 6 THEN 'ShopeePay'
+---compare string
+select levenshtein_distance('Phong 123', 'Phong 123 đi vô hẻm')
+
+select levenshtein_distance('Phong 123', 'kien12345')
+
+select levenshtein_distance('Phong 123', 'Phong 123')
+
+select hamming_distance('Phong 123', 'Phong 123 đi vô hẻm')
+
+array_except(array_1,array_2) => trả về kết quả không trùng
+
+--split string 
+split_part(string,'specific key',vị trí) 
+-- get webform case 
+select * from dev_vnfdbi_opsndrivers.cs_ipo_ticket_v2
+select * from dev_vnfdbi_opsndrivers.snp_foody_sf_chat_new
+--extract number
+select regexp_replace(name,'0|1|2|3|4|5|6|7|8|9') ||'-'||dob as check_1 
+
+
+--- assign log 
+status 
+ASSIGNED = 1
+DENIED = 2
+SHIPPER_INCHARGED = 3
+AUTO_INCHARGED = 4
+REVERTED_INCHARGED = 5
+OTHER_SHIPPER_INCHARGED = 6
+NOT_RECEIVED_PUSH = 7
+SYSTEM_IGNORE = 8
+SHIPPER_IGNORE = 9
+DENIED_DRAFT_TIMED_OUT = 10
+CANCELED = 11
+SHIPPER_INCHARGED_TIMEOUT = 12 # Deprecated
+SHIPPER_CHECKOUT = 13
+DENIED_CUSTOMER_FAULT = 14
+DENIED_MERCHANT_CHANGE_PICK_TIME = 15
+SHIPPER_INCHARGED_ERROR = 16 
+SYSTEM_IGNORE_BYPASSED = 17
+SHIPPER_IGNORE_BYPASSED = 18
+MANUAL_CHANGE_AUTO_ASSIGN = 20
+
+order_type 
+DEFAULT = -1
+DELIVERY = 0
+EXPRESS = 1
+SHOPEE = 2
+NOWMOTO = 3
+NOWSHIP = 4
+NOWSHIP_MERCHANT = 5
+NOWSHIP_SHOPEE = 6
+
+assign_type 
+
+UNDEFINED = 0
+SINGLE_ASSIGN = 1
+MULTI_ASSIGN = 2
+STACK_ASSIGN = 3
+OFFLINE_MULTI_ASSIGN = 4
+FREE_PICK = 5
+MANUAL = 6
+DS_STACK_SINGLE_ASSIGN = 7
+DS_STACK_MULTI_ASSIGN = 8
+
+--
+
+Assignment table : shopeefood.shopeefood_mart_dwd_vn_assignment_driver_filtered_reason_di
+
+1	Filtered by order rules
+
+2	Filtered by driver rules
+4	Filtered by order-driver pair rules 
+
+
+Filter Type	Filter Code 	Filter detail
+
+order filter(tag=1)	
+10001	order assignment schedule or stage not found
+10002	order assign type not match
+10003	has been assigned to shipper, and shipper not confirm
+10004	filter by draft status
+10005	no driver in range founded
+10006	(group order)group is empty
+10007	(group order)group route not found
+10008	(stack order)stack settings disable filter
+10009	(stack order)merchant in blacklist 
+10010	(stack order)merchant not verified
+10011	(stack order)merchant cancel rate too high
+10012	(stack order)customer complete order not enough
+10013 (group order)ORDER_GROUP_SUB_ORDER_STATUS_FILTER #order’s status not correct in group.
+/
+driver filter(tag =2)	
+20001	driver not active
+20002	driver app state not found
+20003	driver location too old
+20004	driver not valid hub 
+20005	driver policy not found
+20006	driver is hub_out_shift
+20007	driver has unconfirmed order
+20008	driver has processing order
+20009	driver location change too frequent
+20010	(stack assign)driver not avaliable
+20012	(stack assign)driver experiment group not match
+20013	(stack assign)driver in stack blacklist
+20014	(stack assign)driver complete order not enough
+20015	(stack assign)driver slr not enough
+20016	(stack assign)driver filter by rollout config
+20017	(stack assign)driver holding orther order
+20018	(stack assign)driver realtime info not found
+20019	(stack assign)driver wrong assign settings
+20020	(stack assign)driver service disabled
+20021	(stack assign)driver hold group order
+20022	(stack assign)driver handling order info not found
+20023	(stack assign)driver target order info not found
+20024	(stack assign)driver target order in blacklist
+20025 ca driver is too far away from the buyer location of loading order
+20027 driver is use on mode order_navigation and system excluded on stack assign flow 
+20030 can not stack a order to driver who loading a high value order
+/
+pair filter(tag=4)	
+30001	driver not in the config range of order 
+30002	driver deny rate too high
+30003	driver auto accept config not match (removed)
+30004	driver has been assigned to order before
+30005	order and driver service type not match
+30006	assign hub order to non hub driver
+30007	assign non hub order to hub driver
+30008	（stack assign）order and driver category not match
+30009	（stack assign）driver seniority not enough
+30011	（stack assign）order and driver policy not match
+31001	COH Type1 filter
+31002	COH Type2 filter
+31003	COH Type3 filter
+31004	COH Type4 filter
+32000	strategy not assign driver to order
+33000	assigned but callback failed
+30101 order in high value list but driver not in high value list
+30103 can not ca a high value order to driver who loading a high value order
+30012 can not stack a hub order to in shift driver who loading a non hub order or can not stack a non hub order to in shift driver who loading a hub order
+33002 PAIR_SHIPPER_LOADING_WAYBILL_REASON
+mapping:
+
+
+
+1）is_grouped = 1：
+
+- shopeefood.foody_partner_db__order_group_mapping_tab__reg_daily_s0_live.order_id
+
+where shopeefood_mart_dwd_vn_assignment_driver_filtered_reason_di.delivery_id = group_id
+
+ 
+
+2) is_grouped = 0
+
+- shopeefood.foody_partner_db__driver_order_tab__reg_daily_s0_live.ref_order_id
+
+where shopeefood_mart_dwd_vn_assignment_driver_filtered_reason_di.delivery_id = id
+
+--
+shipper_registration
+SUBMITTED = 1
+   TEST_PASSED = 4
+   TEST_FAILED = 5
+   REVIEW_PASSED = 6
+   REVIEW_FAILED = 7
+   OFFER_SENT = 8
+   SUCCESS = 11
+   CANCELLED = 12
+   OFFER_SENT_EXPIRED = 13
+   INFORMATION_SUPPLEMENTED = 14
+   SEND_CONTRACT_GENERATING = 15
+   SEND_CONTRACT = 16
+   CONTRACT_READY_TO_SIGN_GENERATING = 17
+   CONTRACT_READY_TO_SIGN = 18
+   CONTRACT_SIGNED_GENERATING = 19
+   CONTRACT_SIGNED = 20
+
+class ShipperRegistrationReferralSource(EnumBase):
+   NOW_DRIVER = 1
+   DIRECTLY = 2
+   FRIEND_OR_FAMILLY = 3
+   NOW_STAFF = 4
+   ADS = 5
+   FORUM_OR_BLOG = 6
+   OTHERS = 7
+---
+shipper check list tab 
+id = 1 then ' Received supporting documents'
+id = 2 then ' Received deposit'
+id = 3 then ' Shipper received uniform'
+id = 4 then ' 01 Criminal record check (photo of the front of the record)'
+id = 5 then ' Identity card / Passport (Notarized)'
+id = 6 then ' 01 Driving license (photo of the front and back of license)'
+id = 7 then ' 01 Vehicle registration certificate (photo of the front and back of license)'
+id = 8 then ' Sacombank ATM card (Internet Banking)'
+id = 9 then ' 01 Family register or Temporary Residence Card (photo of householder information + photo of driver information)'
+id = 10 then ' Curriculum vitae (Notarized)'
+id = 11 then ' Health certificate (last 6 months)'
+id = 12 then ' Have AirPay account with GIRO'
+
+
+-- driver order_tab enum: ref_order_status 
+# shopee
+INIT = 1 
+ASSIGNING = 2 
+ASSIGNING TIMEOUT = 3 
+ASSIGNED = 4 
+SHOPEE CANCELED = 6 
+PICKUP = 8 
+DRIVER CANCELED = 9 
+COMPLETED = 11 
+SYSTEM CANCELED = 12 
+SYSTEM ASSIGNED = 13 
+RETURN SUCCESS = 14 
+RETURN FAILED = 15 
+LOST = 16 
+PICKUP FAILED = 17 
+DELIVERY PENDING = 18 
+RETURN TO HUB = 19 
+RETURNING TO HUB = 20 
+DELIVERY RETRY = 21 
+RECLAIMED = 22
+
+#Food 
+DRAFT = 1 
+RECEIVED = 2 
+PROCESSING = 3 
+VERIFIED = 4 
+ASSIGNED = 5 
+PICKED = 6 
+DELIVERED = 7 
+CANCEL = 8 
+QUIT = 9 
+REASSIGNED = 10 
+CONFIRMED = 13 
+INCHARGED = 11 
+DENIED = 12 
+M ASSIGNED = 14 
+RECEIVED = 15 
+M TIMEOUT = 16 
+OUT OF SERVICE = 17 
+COOKED = 18 
+CHANGED = 19 
+CAN NOT CONNECT = 20 
+AUTO ASSIGN = 21 
+AUTO ASSIGN TIMEOUT = 22 
+PENDING = 23 
+REJECTED = 24 
+FAILED = 25 
+CLOSE = 26 
+;
+shipper_status log
+Delivery:
+OrderStatus.ASSIGNED 5
+OrderStatus.PICKED 6
+OrderStatus.DELIVERED 7
+OrderStatus.REASSIGNED 10
+OrderStatus.IN_CHARGED 11
+OrderStatus.DENIED 12
+OrderStatus.CLOSE 26
+
+Ship-C:
+BookingStatus.ASSIGNED 4
+BookingStatus.PICKUP 8
+BookingStatus.BIKER_CANCELED 9
+BookingStatus.COMPLETED 11
+BookingStatus.RETURN_SUCCESS 14
+BookingStatus.RETURNING 17
+
+Shopee:
+BookingShopeeStatus.ASSIGNED 4
+BookingShopeeStatus.PICKUP 8
+BookingShopeeStatus.SHIPPER_CANCELED 9
+BookingShopeeStatus.COMPLETED 11
+BookingShopeeStatus.RETURN_SUCCESS 14
+BookingShopeeStatus.DELIVERY_PENDING 18
+BookingShopeeStatus.RETURNING_TO_HUB 20
+BookingShopeeStatus.DELIVERY_RETRY 21
+
+--
+Onmap shipper_status 
+avaliable = 1 
+assign = 2 
+pick = 3 
+nearly_available = 4
+--
+Assign state 
+
+PENDING =  1
+DRIVER PROCESSING.= 2
+COMPLETED  = 3
+GROUP DELETED.= 4 
+START ASSIGNING.= 100 
+GROUPING IN POOL.= 101 
+GROUPED.= 102 
+START ASSIGN FLOW = 200
+FREE PICK = 201 
+INGLE ASSIGN IN POOL.= 210 
+SINGLE ASSIGN ASSIGNED.= 211 
+STACK ASSIGN IN POOL.= 220 
+STACK ASSIGN ASSIGNED.= 221 
+
+---
+foody_partner_db.shipping_fee_hub_driver_snapshot_tab
+class DealOrderType(EnumBase):
+	DELIVERY = 1
+	NOWSHIP = 2
+	NOWSHIP_SHOPEE = 3
+	NOWSHIP_SPX = 4
+
+class HubDriverSnapshotType(EnumBase):
+   SINGLE = 0
+   STACK = 1
+   GROUP = 2
+   
+class ShipperQuitRequestStatus(EnumBase):
+   GF_RECEIVED = 1
+   GF_IN_PROCESS = 2
+   AC_RECEIVED = 3
+   AC_IN_PROCESS = 4
+   AC_COMPLETED = 5
+   GF_PRE_COMPLETE = 6
+   GF_COMPLETED = 7
+   CANCELLED = 8
+
+foody_delivery_admin_db__admin_order_refund_tab__reg_daily_s0_live
+
+    CASE WHEN ort.refund_type IN (1, 3) THEN 'Voucher'
+         WHEN ort.refund_type IN (2, 4) THEN 'Shopee_coin'
+         WHEN ort.refund_type IN (5, 6) THEN 'Payment'
+         ELSE 'Others' END AS compensation_refund_type,
+    CASE WHEN ort.refund_type IN (3, 4, 6) THEN 'Compensate'
+         WHEN ort.refund_type IN (1, 2, 5) THEN 'Refund'
+         ELSE NULL END AS type, /* - note: 3,4,6 (compensation order) ; 1,2,5 (refund order) */
+
+
+foody_delivery_db.order_image_tab
+class OrderImageType(EnumBase):
+   MERCHANT_CLOSED_CONFIRM = 1
+   PRICE_REPORT = 2
+   RECEIPT = 3
+   SENDER_SIGNATURE = 4
+   RECEIVER_SIGNATURE = 5
+   SENDER_SIGNATURE_NOTE = 6
+   RECEIVER_SIGNATURE_NOTE = 7
+   RETURN_AT_SENDER_SIGNATURE = 8
+   RETURN_AT_SENDER_SIGNATURE_NOTE = 9
+   ARRIVED_AT_PICK_CONFIRM = 10
+   ARRIVED_AT_DROP_CONFIRM = 11
+   DRIVER_DENY = 12
+
+;
+shopeefood_mart_cdm_dwd_vn_driver_track_di - new location tracking log
+;
+ingest sheet: https://docs.google.com/spreadsheets/d/1Im6SbDnXI-DoXTBG2sgnoZsg2jYDUBeEYgTdhwZ3V4Y/edit#gid=0
+;
+peak_mode_instance_tab 
+class PeakModeInstanceStatus(EnumBase):
+   DELETE = 1
+   DISABLE = 2
+   SNOOZE = 3 # Judging from the code usage, this status is also deprecated.
+   ENABLE = 4 #
+   RUNNING = 5
+;
+setting_time_range_tab
+Class TimeRangeSettingType(EnumBase):
+DAY_OF_WEEK = 1
+CUSTOM_DATE = 2
+DEFAULT = 
+;
+shopeefood_merchant.foody_merchant_db__restaurant_prepare_time_with_time_ranges_tab__reg_daily_s0_live - get whitelist DA 

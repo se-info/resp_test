@@ -1,0 +1,239 @@
+with data_realtime as
+
+(SELECT date(from_unixtime(slot.date_ts - 3600)) as date_ts
+        ,slot.uid
+        ,sm.shipper_name
+        ,sm.city_name
+        ,ado.update_time as update_time
+        ,case when slot.registration_status = 1 then 'Registered'
+              when slot.registration_status = 2 then 'OFF'
+              when slot.registration_status = 3 then 'Worked'
+              end as registration_status 
+        ,concat(cast( ((slot.end_time - slot.start_time)/3600) as varchar),'hour shift') as shift_      
+        ,coalesce(ado.total_order,0) as total_order
+        ,coalesce(ado.total_stack,0) as total_stack
+        
+    FROM shopeefood.foody_internal_db__shipper_slot_registration_tab__vn_daily_s0_live slot
+    LEFT JOIN 
+    (SELECT a.uid
+            ,sm.shipper_name
+            ,sm.city_name
+          ,date(from_unixtime(real_drop_time - 3600)) as date_
+          ,date_format(from_unixtime(real_drop_time - 3600),'%H:%i') as update_time    
+          ,case when a.pick_city_id = 217 then 'HCM'
+                when a.pick_city_id = 218 then 'HN'
+                else 'OTH' end as city_group
+          ,count(ref_order_id) as total_order
+          ,count(case when group_id >0 then ref_order_id else null end) as total_stack
+          
+    FROM foody_vite.foody_partner_db__driver_order_tab a 
+    LEFT JOIN shopeefood.foody_mart__profile_shipper_master sm on sm.shipper_id = a.uid and sm.grass_date = 'current'
+    where 1 = 1 
+    and date(from_unixtime(real_drop_time - 3600)) = date(now())
+    and sm.shipper_type_id = 12
+    and ref_order_category = 0
+    and ref_order_status in (7,11)
+    group by 1,2,3,4,5,6
+    )ado on ado.uid = slot.uid and date_ = date(from_unixtime(slot.date_ts - 3600))
+    
+    LEFT JOIN shopeefood.foody_mart__profile_shipper_master sm on sm.shipper_id = slot.uid and sm.grass_date = 'current'
+    
+    where date(from_unixtime(slot.date_ts - 3600)) = current_date
+    and slot.registration_status != 2
+    )
+    
+    
+,data_historical as 
+(SELECT date(from_unixtime(slot.date_ts - 3600)) as date_ts
+        ,slot.uid
+        ,sm.shipper_name
+        ,sm.city_name
+        ,case when slot.registration_status = 1 then 'Registered'
+              when slot.registration_status = 2 then 'OFF'
+              when slot.registration_status = 3 then 'Worked'
+              end as registration_status 
+        ,concat(cast( ((slot.end_time - slot.start_time)/3600) as varchar),'hour shift') as shift_      
+        ,coalesce(ado.total_order,0) as total_order 
+        ,coalesce(ado.total_stack,0) as total_stack
+        ,coalesce(ado.total_group,0) as total_group
+        
+    FROM shopeefood.foody_internal_db__shipper_slot_registration_tab__vn_daily_s0_live slot
+    LEFT JOIN 
+    (SELECT a.uid
+            ,sm.shipper_name
+            ,sm.city_name
+          ,date(from_unixtime(real_drop_time - 3600)) as date_    
+          ,case when a.pick_city_id = 217 then 'HCM'
+                when a.pick_city_id = 218 then 'HN'
+                else 'OTH' end as city_group
+          ,count(ref_order_id) as total_order
+          ,count(case when group_id >0 and coalesce(group_order.order_type,0) = 0 then ref_order_id else null end) as total_stack
+          ,count(case when group_id >0 and coalesce(group_order.order_type,0) = 200 then ref_order_id else null end) as total_group
+          
+    FROM shopeefood.foody_partner_db__driver_order_tab__reg_daily_s0_live a 
+    LEFT JOIN (select *
+                    ,case
+                        when grass_date = 'current' then date(current_date)
+                        else cast(grass_date AS DATE ) END as report_date
+                    from shopeefood.foody_mart__profile_shipper_master
+                    where grass_region = 'VN'
+              )sm on sm.shipper_id = a.uid and sm.report_date = date(from_unixtime(real_drop_time - 3600))
+    
+    --Check policy          
+    LEFT JOIN shopeefood.foody_partner_db__driver_order_extra_tab__reg_daily_s0_live doet on a.id = doet.order_id
+    -- Check Group
+    LEFT JOIN 
+    (SELECT
+a.order_id
+,a.order_type
+,case when a.order_type <> 200 then order_type else ogi.ref_order_category end as order_category
+,case when a.assign_type = 1 then '1. Single Assign'
+when a.assign_type in (2,4) then '2. Multi Assign'
+when a.assign_type = 3 then '3. Well-Stack Assign'
+when a.assign_type = 5 then '4. Free Pick'
+when a.assign_type = 6 then '5. Manual'
+when a.assign_type in (7,8) then '6. New Stack Assign'
+else null end as assign_type
+,from_unixtime(a.create_time - 60*60) as create_time
+,from_unixtime(a.update_time - 60*60) as update_time
+,date(from_unixtime(a.create_time - 60*60)) as date_
+,case when cast(FROM_UNIXTIME(a.create_time - 60*60) as date) between DATE('2019-12-30') and DATE('2019-12-31') then 202001
+when cast(FROM_UNIXTIME(a.create_time - 60*60) as date) between DATE('2021-01-01') and DATE('2021-01-03') then 202053
+else YEAR(cast(FROM_UNIXTIME(a.create_time - 60*60) as date))*100 + WEEK(cast(FROM_UNIXTIME(a.create_time - 60*60) as date)) end as year_week
+
+from (SELECT concat(cast(order_id as VARCHAR),'-',cast(order_type as VARCHAR)) as order_uid, order_id, city_id, assign_type, update_time, create_time,status,order_type, experiment_group
+
+from foody.foody_partner_archive_db__order_assign_shipper_log_archive_tab
+where status in (3,4) -- shipper incharge
+
+UNION
+
+SELECT concat(cast(order_id as VARCHAR),'-',cast(order_type as VARCHAR)) as order_uid, order_id, city_id, assign_type, update_time, create_time,status,order_type, experiment_group
+
+from foody.foody_partner_db__order_assign_shipper_log_tab
+where status in (3,4) -- shipper incharge
+)a
+
+-- take last incharge
+LEFT JOIN
+(SELECT concat(cast(order_id as VARCHAR),'-',cast(order_type as VARCHAR)) as order_uid, order_id, city_id, assign_type, update_time, create_time,status
+
+from foody.foody_partner_archive_db__order_assign_shipper_log_archive_tab
+where status in (3,4) -- shipper incharge
+
+UNION
+
+SELECT concat(cast(order_id as VARCHAR),'-',cast(order_type as VARCHAR)) as order_uid, order_id, city_id, assign_type, update_time, create_time,status
+
+from foody.foody_partner_db__order_assign_shipper_log_tab
+where status in (3,4) -- shipper incharge
+)a_filter on a.order_uid = a_filter.order_uid and a.create_time < a_filter.create_time
+
+-- auto accept
+
+LEFT JOIN foody.foody_partner_db__order_group_info_tab ogi on ogi.id > 0 and ogi.id = case when a.order_type = 200 then a.order_id else 0 end
+
+where 1=1
+and a_filter.order_id is null -- take last incharge
+-- and a.order_id = 9490679
+and a.order_type = 200
+
+GROUP BY 1,2,3,4,5,6,7,8
+
+)group_order on group_order.order_id = a.group_id and a.group_id > 0 and group_order.order_category = a.ref_order_category
+    
+    where 1 = 1 
+    and sm.shipper_type_id = 12
+    and ref_order_category = 0
+    and ref_order_status in (7,9,11)
+    and cast(json_extract(doet.order_data,'$.shipper_policy.type') as bigint) = 2
+    group by 1,2,3,4,5
+    )ado on ado.uid = slot.uid and date_ = date(from_unixtime(slot.date_ts - 3600))
+    
+    LEFT JOIN shopeefood.foody_mart__profile_shipper_master sm on sm.shipper_id = slot.uid and sm.grass_date = 'current'
+    
+    where date(from_unixtime(slot.date_ts - 3600)) between current_date - interval '8' day and current_date - interval '1' day
+    and slot.registration_status != 2
+)
+SELECT * 
+
+
+FROM 
+
+( SELECT concat(cast(period as varchar),'-',cast(last_update as varchar)) as period 
+         ,metrics 
+         ,city_group   
+         ,hub_type
+         ,sum(total_order) as total_order
+         ,sum(stack_order) as stack_order
+         ,sum(total_active) as total_active
+  FROM          
+(SELECT
+       a.date_ts as period
+      ,'1. Real Time' as metrics 
+      ,'1. All' as city_group
+      ,'1. All' as hub_type
+      ,sum(a.total_order) as total_order
+      ,sum(a.total_stack) as stack_order
+      ,count(distinct case when a.total_order > 0 then a.uid else null end) as total_active
+FROM data_realtime a 
+
+group by 1,2,3,4
+
+union all 
+
+SELECT
+       b.date_ts as period
+      ,'1. Real Time' as metrics
+      ,b.city_name as city_group 
+      ,b.shift_ as hub_type
+      ,sum(b.total_order) as total_order
+      ,sum(b.total_stack) as stack_order
+      ,count(distinct case when b.total_order > 0 then b.uid else null end) as total_active
+
+FROM data_realtime b 
+
+
+group by 1,2,3,4
+)
+----
+----
+
+CROSS JOIN (
+            SELECT   
+            date_format(max_update_time,'%H:%i') as last_update
+            from
+            (
+            SELECT max(from_unixtime(real_drop_time - 3600)) as max_update_time
+            from foody_vite.foody_partner_db__driver_order_tab) 
+            ) 
+
+group by 1,2,3,4
+----
+)
+
+UNION ALL  
+(SELECT
+       cast(date_ts as varchar) as period
+      ,'2. Historical' as metrics 
+      ,'1. All' as city_group
+      ,'1. All' as hub_type
+      ,sum(a.total_order) as total_order
+      ,sum(a.total_stack) as stack_order     
+      ,count(distinct case when a.total_order > 0 then a.uid else null end ) as total_active
+        
+FROM data_historical a 
+group by 1,2,3,4
+union all 
+SELECT
+       cast(b.date_ts as varchar) as period
+      ,'2. Historical' as metrics
+      ,b.city_name as city_group 
+      ,b.shift_ as hub_type
+      ,sum(b.total_order) as total_order
+      ,sum(b.total_stack) as stack_order
+      ,count(distinct case when b.total_order > 0 then b.uid else null end) as total_active
+
+FROM data_historical b 
+group by 1,2,3,4
+)

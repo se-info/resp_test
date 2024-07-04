@@ -1,0 +1,6 @@
+{
+    "sonarlint.connectedMode.project": {
+        "connectionId": "se-info",
+        "projectKey": "se-info_resp_test"
+    }
+}

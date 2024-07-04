@@ -1,0 +1,212 @@
+with a as 
+(
+Select * from vnfdbi_opsndrivers.snp_foody_driver_cpo_tab where 1=1 and date_ >= date'2022-02-01'
+)
+
+, b as 
+(
+SELECT   cast(date_ as varchar) date_ 
+        ,year_week as week_ 
+        , year(date_)*100 + month(date_) as month_
+        ,current_driver_tier
+        ,sum(total_bill_food) ado_food
+        ,sum(total_bill_non_hub_food) ado_food_non_hub
+        ,sum(total_bill_hub_food) ado_food_hub
+        ,sum(total_bill_non_hub) ado_non_hub
+------------Non Hub
+        ,sum(total_shipping_fee_share_basic_food*1.00000000/exchange_rate) as sum_driver_cost_basic_food_non_hub
+        ,sum(total_shipping_fee_surge_food*1.00000000/exchange_rate) 
+                 - 	
+         sum(total_bad_weather_cost_non_hub_food*1.00000/exchange_rate)
+                 - 		
+         sum(total_late_night_cost_non_hub_food*1.00000/exchange_rate)
+                 - 	
+         sum(total_holiday_cost_non_hub_food*1.00000/exchange_rate)
+         
+             as sum_driver_cost_surge_food_non_hub  
+        ,sum(total_bonus_before_tax_combined*1.00000000/exchange_rate)*sum(total_bill_non_hub_food )*1.0000/sum(total_bill_non_hub) as sum_driver_cost_bonus_food_non_hub 
+        ,case when sum(total_bill_food) = 0 then 0
+            else
+            		(
+            
+            		case when sum(total_bill_non_hub_food) = 0 then 0
+            		when sum(total_bill_non_hub) = 0 then 0
+            		else
+            
+            		case when sum(case
+            			when city_name = 'HCM' then total_bill_non_hub
+            			else 0 end
+            			) = 0 then 0 else
+            
+            			(sum(case
+            			when city_name = 'HCM' then total_bonus_before_tax_combined*1.0000/exchange_rate
+            			else 0 end
+            			)*1.00/sum(case
+            			when city_name = 'HCM' then total_bill_non_hub
+            			else 0 end
+            			))*(sum(case when city_name = 'HCM' then total_bill_non_hub_food else null end)*1.0000/sum(total_bill_non_hub_food))
+            
+            			end
+            
+                +
+            
+            		case when sum(case when city_name = 'HN' then total_bill_non_hub else 0 end) = 0 then 0 
+            			 else
+            				(sum(case when city_name = 'HN' then total_bonus_before_tax_combined*1.0000/exchange_rate else 0 end)*1.00
+            				/sum(case when city_name = 'HN' then total_bill_non_hub else 0 end
+            				 ))*(sum(case when city_name = 'HN' then total_bill_non_hub_food else null end)*1.0000/sum(total_bill_non_hub_food))
+            
+            			 end
+            
+            	+
+            
+            		case when sum(case
+            		when city_name = 'DN' then total_bill_non_hub
+            		else 0 end
+            		) = 0 then 0 else
+            
+            
+            		(sum(case
+            		when city_name = 'DN' then total_bonus_before_tax_combined*1.0000/exchange_rate
+            		else 0 end
+            		)*1.00/sum(case
+            		when city_name = 'DN' then total_bill_non_hub
+            		else 0 end
+            		))*(sum(case when city_name = 'DN' then total_bill_non_hub_food else null end)*1.0000/sum(total_bill_non_hub_food))
+            
+            		end
+            
+            	+
+            
+            		case when sum(case
+            		when city_name = 'OTH' then total_bill_non_hub
+            		else 0 end
+            		) = 0 then 0 else
+            
+            
+            		(sum(case
+            		when city_name = 'OTH' then total_bonus_before_tax_combined*1.0000/exchange_rate
+            		else 0 end
+            		)*1.00/sum(case
+            		when city_name = 'OTH' then total_bill_non_hub
+            		else 0 end
+            		))*(sum(case when city_name = 'OTH' then total_bill_non_hub_food else null end)*1.0000/sum(total_bill_non_hub_food))
+            
+            		end
+            
+            		end
+            
+            
+            		)
+        
+          end as driver_cost_bonus_food_non_hub_v2
+
+------Hub
+      ,case when sum(total_bill_food) = 0 then 0
+            else           
+            (
+            
+            case when sum(total_bill_hub_food) = 0 then 0
+            when sum(total_bill_hub) = 0 then 0
+            else
+            case when sum(case when city_name = 'HCM' then total_bill_hub else 0 end) = 0 then 0 else
+            (
+            sum(case when city_name = 'HCM' then hub_cost_auto_shipping_fee * 1.00000000/exchange_rate else 0 end) * 1.0000/sum(case when city_name = 'HCM' then total_bill_hub else 0 end) 
+            ) * (sum(case when city_name = 'HCM' then total_bill_hub_food else null end) * 1.00000000/sum(total_bill_hub_food))
+            end
+            +
+            case when sum(case when city_name = 'HN' then total_bill_hub else 0 end) = 0 then 0 else
+            (
+            sum(case when city_name = 'HN' then hub_cost_auto_shipping_fee * 1.00000000/exchange_rate else 0 end) * 1.0000/sum(case when city_name = 'HN' then total_bill_hub else 0 end) 
+            ) * (sum(case when city_name = 'HN' then total_bill_hub_food else null end) * 1.00000000/sum(total_bill_hub_food))
+            end
+            +
+            case when sum(case when city_name = 'DN' then total_bill_hub else 0 end) = 0 then 0 else
+            (
+            sum(case when city_name = 'DN' then hub_cost_auto_shipping_fee * 1.00000000/exchange_rate else 0 end) * 1.0000/sum(case when city_name = 'DN' then total_bill_hub else 0 end) 
+            ) * (sum(case when city_name = 'DN' then total_bill_hub_food else null end) * 1.00000000/sum(total_bill_hub_food))
+            end
+            +
+            case when sum(case when city_name = 'OTH' then total_bill_hub else 0 end) = 0 then 0 else
+            (
+            sum(case when city_name = 'OTH' then hub_cost_auto_shipping_fee * 1.00000000/exchange_rate else 0 end) * 1.0000/sum(case when city_name = 'OTH' then total_bill_hub else 0 end) 
+            ) * (sum(case when city_name = 'OTH' then total_bill_hub_food else null end) * 1.00000000/sum(total_bill_hub_food))
+            end
+            end
+            
+            ) 
+        
+        end as driver_cost_basic_food_hub     
+
+        ,sum(0) as driver_cost_surge_food_hub 
+
+        ,case when sum(total_bill_food) = 0 then 0
+            else
+            (
+            
+            
+            case when sum(total_bill_hub_food) = 0 then 0
+            when sum(total_bill_hub) = 0 then 0
+            else
+            case when sum(case when city_name = 'HCM' then total_bill_hub else 0 end) = 0 then 0 else
+            (
+            sum(case when city_name = 'HCM' then (hub_cost_auto_daily_bonus + hub_weekly_bonus) * 1.0000/exchange_rate else 0 end) * 1.00/sum(case when city_name = 'HCM' then total_bill_hub else 0 end)  
+            ) * (sum(case when city_name = 'HCM' then total_bill_hub_food else null end) * 1.00000000/sum(total_bill_hub_food))
+            end
+            +
+            case when sum(case when city_name = 'HN' then total_bill_hub else 0 end) = 0 then 0 else
+            (
+            sum(case when city_name = 'HN' then (hub_cost_auto_daily_bonus + hub_weekly_bonus) * 1.0000/exchange_rate else 0 end) * 1.00/sum(case when city_name = 'HN' then total_bill_hub else 0 end) 
+            ) * (sum(case when city_name = 'HN' then total_bill_hub_food else null end) * 1.00000000/sum(total_bill_hub_food))
+            end
+            +
+            case when sum(case when city_name = 'DN' then total_bill_hub else 0 end) = 0 then 0 else
+            (
+            sum(case when city_name = 'DN' then (hub_cost_auto_daily_bonus + hub_weekly_bonus) * 1.0000/exchange_rate else 0 end) * 1.00/sum(case when city_name = 'DN' then total_bill_hub else 0 end) 
+            ) * (sum(case when city_name = 'DN' then total_bill_hub_food else null end) * 1.00000000/sum(total_bill_hub_food))
+            end
+            +
+            case when sum(case when city_name = 'OTH' then total_bill_hub else 0 end) = 0 then 0 else
+            (
+            sum(case when city_name = 'OTH' then (hub_cost_auto_daily_bonus + hub_weekly_bonus) * 1.0000/exchange_rate else 0 end) * 1.00/sum(case when city_name = 'OTH' then total_bill_hub else 0 end)
+            ) * (sum(case when city_name = 'OTH' then total_bill_hub_food else null end) * 1.00000000/sum(total_bill_hub_food))
+            end
+            end
+            
+            
+            ) 
+        
+          end as driver_cost_bonus_food_hub 
+
+
+FROM a 
+
+GROUP BY 1,2,3,4
+)
+--select * from b 
+select date_
+      ,case when sum_driver_cost_basic_food_non_hub + sum_driver_cost_surge_food_non_hub + driver_cost_bonus_food_non_hub_v2*ado_food_non_hub > 0 and current_driver_tier = 'Hub' then 'Others' 
+            when current_driver_tier in ('T1','T2','T3','T4','T5') then current_driver_tier
+            else 'Others' end as current_driver_tier 
+     --  ,current_driver_tier
+       ,sum(ado_food_non_hub) as total_ado
+       ,sum(sum_driver_cost_basic_food_non_hub)*1.000000/sum(ado_food_non_hub) + sum(sum_driver_cost_surge_food_non_hub)*1.000000/sum(ado_food_non_hub) + sum(driver_cost_bonus_food_non_hub_v2*ado_food_non_hub)*1.000000/sum(ado_food_non_hub) as driver_cpo
+       ,sum(sum_driver_cost_basic_food_non_hub)*1.000000/sum(ado_food_non_hub) as basic 
+       ,sum(sum_driver_cost_surge_food_non_hub)*1.000000/sum(ado_food_non_hub) as surge 
+       ,sum(driver_cost_bonus_food_non_hub_v2*ado_food_non_hub)*1.000000/sum(ado_food_non_hub) as bonus
+       
+from b where 1=1 --and ((driver_cost_basic_food_non_hub + driver_cost_basic_food_non_hub + driver_cost_surge_food_non_hub) < 0 or current_driver_tier != 'Hub')
+group by 1,2 
+
+union all 
+
+select date_
+      ,current_driver_tier 
+      ,sum(ado_food_hub) as total_ado
+      ,sum(driver_cost_basic_food_hub*ado_food_hub)*1.000000/sum(ado_food_hub) + sum(driver_cost_bonus_food_hub*ado_food_hub)*1.000000/sum(ado_food_hub) as driver_cpo
+      ,sum(driver_cost_basic_food_hub*ado_food_hub)*1.000000/sum(ado_food_hub) as basic 
+      ,sum(0) as surge 
+      ,sum(driver_cost_bonus_food_hub*ado_food_hub)*1.000000/sum(ado_food_hub) as bonus
+from b  
+where 1=1 and current_driver_tier in ('Hub')
+group by 1,2

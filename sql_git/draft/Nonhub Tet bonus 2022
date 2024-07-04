@@ -1,0 +1,123 @@
+WITH violation AS
+(SELECT
+    base.shipper_id
+    , COUNT(DISTINCT base.ticket_id) AS violations
+FROM
+    (SELECT
+        ht.id AS ticket_id
+        , CASE
+            WHEN ht.status = 1 THEN '1. Open'
+            WHEN ht.status = 2 THEN '2. Pending'
+            WHEN ht.status = 3 THEN '3. Resolved'
+            WHEN ht.status = 5 THEN '4. Completed'
+            WHEN ht.status = 4 THEN '5. Closed'
+        ELSE NULL END AS status
+        , CASE
+            WHEN ht.incharge_team = 1 THEN 'CC'
+            WHEN ht.incharge_team = 2 THEN 'PROJECTOR'
+            WHEN ht.incharge_team = 3 THEN 'EDITOR'
+            WHEN ht.incharge_team = 4 THEN 'GOFAST'
+            WHEN ht.incharge_team = 5 THEN 'PRODUCT SUPPORT'
+            WHEN ht.incharge_team = 6 THEN 'AGENT'
+            WHEN ht.incharge_team = 7 THEN 'AGENT MANAGER'
+        ELSE NULL END AS incharge_team
+        , CASE
+            WHEN ht.ticket_type = 1 THEN 'VIOLATION_OF_RULES'
+            WHEN ht.ticket_type = 2 THEN 'CHANGE_SHIPPER_INFO'
+            WHEN ht.ticket_type = 3 THEN 'FRAUD'
+            WHEN ht.ticket_type = 4 THEN 'CUSTOMER_FEEDBACK'
+            WHEN ht.ticket_type = 5 THEN 'CC_FEEDBACK'
+            WHEN ht.ticket_type = 6 THEN 'NOW_POLICE'
+            WHEN ht.ticket_type = 7 THEN 'MERCHANT_FEEDBACK'
+            WHEN ht.ticket_type = 8 THEN 'PARTNER_SIGNATURE_NOTE'
+            WHEN ht.ticket_type = 9 THEN 'REQUEST_CHANGE_DRIVER_INFO'
+        ELSE NULL END AS ticket_type
+        , CASE
+            WHEN ht.city_id = 217 THEN 'HCM'
+            WHEN ht.city_id = 218 THEN 'HN'
+            WHEN ht.city_id = 219 THEN 'DN'
+            WHEN ht.city_id = 220 THEN 'HP'
+        ELSE 'OTH' END AS city_group
+        , FROM_UNIXTIME(ht.create_time - 3600) AS created_timestamp
+        , DATE(FROM_UNIXTIME(ht.create_time - 3600)) AS created_date
+        , COALESCE(htl.label,'NO_ACTION') AS resolution
+        , IF(ht.resolve_time > 0, FROM_UNIXTIME(ht.resolve_time - 3600), FROM_UNIXTIME(ht.update_time - 3600)) AS resolve_timestamp
+        , DATE_DIFF('second', FROM_UNIXTIME(ht.create_time - 3600), IF(ht.resolve_time > 0, FROM_UNIXTIME(ht.resolve_time - 3600), FROM_UNIXTIME(ht.update_time - 3600))) lt_resolve
+        , htu.uid AS shipper_id
+        , ht.extra_data AS ex
+
+    FROM shopeefood.foody_internal_db__hr_tick_tab__reg_daily_s0_live ht
+    LEFT JOIN shopeefood.foody_internal_db__hr_tick_label_tab__reg_daily_s0_live htl on htl.tick_id = ht.id
+    LEFT JOIN shopeefood.foody_internal_db__hr_tick_user_tab__reg_daily_s0_live htu on htu.tick_id = ht.id
+
+    WHERE 1=1
+    AND ht.incharge_team = 4
+    AND DATE(FROM_UNIXTIME(ht.create_time - 3600)) BETWEEN DATE'2022-02-04' AND DATE'2022-02-10'
+    AND ht.status = 5
+    AND COALESCE(htl.label,'NO_ACTION') NOT IN ('NO_ACTION','REWARD_SHIPPER')
+    AND htu.uid IS NOT NULL
+    ) base
+GROUP BY 1
+)
+, shipper_orders AS
+(SELECT
+    snp.shipper_id
+    , snp.shipper_name
+    , snp.city_name
+    , SUM(snp.cnt_total_order_delivered) AS delivered_orders
+    , SUM(COALESCE(snp.delivered_ns_shopee_distance, 0))
+    + SUM(COALESCE(snp.delivered_ns_offshopee_distance, 0))
+    + SUM(COALESCE(snp.delivered_market_distance, 0))
+    + SUM(COALESCE(snp.delivered_fresh_distance, 0))
+    + SUM(COALESCE(snp.delivered_food_distance, 0))
+    AS delivered_distance
+    , SUM(IF(CAST(COALESCE(sla.completed_rate, 0) AS DOUBLE) / 100 >= 90, 1, 0)) AS eligible_sla_days
+    , COUNT(DISTINCT snp.report_date) AS shipper_days
+    , SUM(IF(CAST(COALESCE(sla.completed_rate, 0) AS DOUBLE) / 100 >= 90, CAST(COALESCE(sla.completed_rate, 0) AS DOUBLE) / 100, 0)) / COUNT(DISTINCT snp.report_date) AS avg_sla
+FROM vnfdbi_opsndrivers.snp_foody_shipper_daily_report snp
+LEFT JOIN violation v ON snp.shipper_id = v.shipper_id
+LEFT JOIN shopeefood.foody_internal_db__shipper_report_daily_tab__reg_daily_s0_live sla ON snp.shipper_id = sla.uid AND DATE(FROM_UNIXTIME(sla.report_date-3600)) = snp.report_date
+WHERE snp.report_date BETWEEN DATE'2022-02-04' AND DATE'2022-02-10'
+AND snp.current_driver_tier != 'Hub'
+AND COALESCE(v.violations, 0) = 0
+AND COALESCE(snp.cnt_total_order_delivered, 0) > 0
+GROUP BY 1,2,3
+)
+, ranking AS
+(SELECT *
+FROM
+    (SELECT
+        *
+        , RANK() OVER (ORDER BY delivered_orders DESC, delivered_distance DESC) AS ranking
+    FROM (SELECT * FROM shipper_orders WHERE eligible_sla_days = shipper_days)
+    )
+WHERE ranking <= 2022
+)
+SELECT
+    r.ranking
+    , r.shipper_id
+    , r.shipper_name
+    , r.city_name
+    , r.delivered_orders
+    , r.delivered_distance
+    , sm.shipper_type_id
+    , r.avg_sla
+    , SUM(total_earning_before_tax) * 0.05 AS tet_bonus
+    , SUM(total_earning_before_tax) AS total_earning_before_tax
+    , SUM(shipping_fee_share) AS shipping_fee_share
+    , SUM(return_fee_share) AS return_fee_share
+    , SUM(additional_bonus) AS additional_bonus
+    , SUM(order_completed_bonus) AS order_completed_bonus
+    , SUM(other_payables) AS other_payables
+    , SUM(weekly_bonus) AS weekly_bonus
+    , SUM(daily_bonus) AS daily_bonus
+    , SUM(hub_cost_auto) AS hub_cost_auto
+    , SUM(hub_weekly_bonus) AS hub_weekly_bonus
+    , SUM(total_bad_weather_cost) AS total_bad_weather_cost
+    , SUM(total_late_night_cost) AS total_late_night_cost
+    , SUM(total_holiday_cost) AS total_holiday_cost
+FROM vnfdbi_opsndrivers.snp_foody_shipper_income_tab i
+INNER JOIN ranking r ON i.partner_id = r.shipper_id
+LEFT JOIN shopeefood.foody_mart__profile_shipper_master sm ON r.shipper_id = sm.shipper_id AND sm.grass_date = 'current'
+WHERE i.date_ BETWEEN DATE'2022-02-04' AND DATE'2022-02-10'
+GROUP BY 1,2,3,4,5,6,7,8

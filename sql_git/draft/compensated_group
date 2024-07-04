@@ -1,0 +1,367 @@
+with data as
+(SELECT month(all.report_date) as month_
+,all.report_date
+,year(all.report_date)*100+week(all.report_date) as created_year_week
+,all.city_group
+,all.total_driver as active_driver
+,all.total_order
+,case when all.report_date between date('2021-10-21') - interval '30' day and date('2021-10-22') - interval '1' day then coalesce(bf.expected_driver,0) 
+      else reg.register_driver end as register_driver
+,all.group_compensated
+,all.driver_under_target
+,all.driver_over_target
+,all.driver_pass_target
+,all.driver_compensate
+,all.hub_type
+,all.hub_name
+
+
+FROM 
+(SELECT
+'1.Hub performance' as group_metrics
+,'1. Driver Performance' as metrics
+,base2.report_date
+,base2.city_group
+,case when base2.city_group = 'HN' and base2.report_date >= date('2021-10-05') then 1
+      when base2.city_group = 'HCM' and base2.report_date >= date('2021-10-06') then 1    
+      else 0 end as is_resume
+,base2.hub_type
+,base2.hub_name
+----Group compensated
+,case WHEN ( 
+            (base2.hub_type = '5 hour shift' AND is_compensate = 'true' AND ((16 - base2.total_order )*1.0000/16) <= 0.3 )
+      OR   (base2.hub_type = '8 hour shift' AND is_compensate = 'true' AND ((25 - base2.total_order )*1.0000/25) <= 0.3) 
+      OR   (base2.hub_type = '10 hour shift' AND is_compensate = 'true' AND ((30 - base2.total_order )*1.0000/30) <= 0.3) 
+      )
+      THEN '1. 10% - 30%'
+      ----
+      WHEN ( 
+            (base2.hub_type = '5 hour shift' AND is_compensate = 'true' AND ((16 - base2.total_order )*1.0000/16) <= 0.5)
+      OR   (base2.hub_type = '8 hour shift' AND is_compensate = 'true' AND ((25 - base2.total_order )*1.0000/25) <= 0.5) 
+      OR   (base2.hub_type = '10 hour shift' AND is_compensate = 'true' AND ((30 - base2.total_order )*1.0000/30) <= 0.5) 
+      )
+      THEN '2. 30% - 50%'
+      -----
+      WHEN ( 
+            (base2.hub_type = '5 hour shift' AND is_compensate = 'true' AND ((16 - base2.total_order )*1.0000/16) <= 0.8)
+      OR   (base2.hub_type = '8 hour shift' AND is_compensate = 'true' AND ((25 - base2.total_order )*1.0000/25) <= 0.8) 
+      OR   (base2.hub_type = '10 hour shift' AND is_compensate = 'true' AND ((30 - base2.total_order )*1.0000/30) <= 0.8) 
+      )
+      THEN '3. 50% - 80%'
+      ----
+       WHEN ( 
+            (base2.hub_type = '5 hour shift' AND is_compensate = 'true' AND ((16 - base2.total_order )*1.0000/16) > 0.8)
+      OR   (base2.hub_type = '8 hour shift' AND is_compensate = 'true' AND ((25 - base2.total_order )*1.0000/25) > 0.8) 
+      OR   (base2.hub_type = '10 hour shift' AND is_compensate = 'true' AND ((30 - base2.total_order )*1.0000/30) > 0.8) 
+      )
+      THEN '4. >= 80%'
+      else '5. No Compensated' end as group_compensated
+,sum(base2.total_order)*1.000/count(distinct base2.report_date) as total_order
+,count(base2.uid)*1.000/count(distinct base2.report_date) as total_driver
+,count(case when less_than_min = 1 then base2.uid else null end )*1.000/count(distinct base2.report_date) as driver_under_target
+,count(case when less_than_min = 1 and base2.is_compensate = 'true' then base2.uid else null end )*1.000/count(distinct base2.report_date) as driver_compensate
+,count(case when pass_min = 1 then base2.uid else null end)*1.000/count(distinct base2.report_date) as driver_pass_target
+,count(case when over_min = 1 then base2.uid else null end)*1.000/count(distinct base2.report_date) as driver_over_target
+FROM
+(SELECT base1.report_date
+,cast(base1.created_year_week as varchar) as created_year_week
+,base1.uid
+,base1.shipper_name
+,base1.city_group
+,info.hub_name
+,base1.hub_type
+,base1.total_order
+,cast(json_extract(hub.extra_data,'$.is_apply_fixed_amount') as VARCHAR) as is_compensate
+,case WHEN base1.hub_type = '5 hour shift' AND base1.total_order < 16 THEN 1
+WHEN base1.hub_type = '8 hour shift' AND base1.total_order < 25 THEN 1
+WHEN base1.hub_type = '10 hour shift' AND base1.total_order < 30 THEN 1
+ELSE 0 END as less_than_min
+,case WHEN base1.hub_type = '5 hour shift' AND base1.total_order > 16 THEN 1
+WHEN base1.hub_type = '8 hour shift' AND base1.total_order > 25 THEN 1
+WHEN base1.hub_type = '10 hour shift' AND base1.total_order >30 THEN 1
+ELSE 0 END AS over_min
+,case WHEN base1.hub_type = '5 hour shift' AND base1.total_order = 16 THEN 1
+WHEN base1.hub_type = '8 hour shift' AND base1.total_order = 25 THEN 1
+WHEN base1.hub_type = '10 hour shift' AND base1.total_order = 30 THEN 1
+ELSE 0 END AS pass_min
+,case when base1.hub_type = '5 hour shift' AND base1.total_order < 15 THEN 1
+when base1.hub_type = '8 hour shift' AND base1.total_order < 12 THEN 1 
+when base1.hub_type = '10 hour shift' AND base1.total_order < 7 THEN 1 
+else 0 end as hub_conditions
+
+,base1.bwf
+,case when base1.report_date between date('2021-07-09') and date('2021-10-05') and base1.city_group = 'HCM' then base1.delivery_cost
+when base1.report_date between date('2021-07-24') and date('2021-10-04') and base1.city_group = 'HN' then base1.delivery_cost
+else coalesce(cast(json_extract(hub.extra_data,'$.calculated_shipping_shared') as bigint),base1.total_order*13500) end as ship_shared
+
+,case when base1.report_date between date('2021-07-09') and date('2021-10-05') and base1.city_group = 'HCM' then base1.bonus
+when base1.report_date between date('2021-07-24') and date('2021-10-04') and base1.city_group = 'HN' then base1.bonus
+else coalesce(cast(json_extract(hub.extra_data,'$.total_bonus') as bigint),0) end as daily_bonus
+
+
+,case when cast(json_extract(hub.extra_data,'$.is_apply_fixed_amount') as VARCHAR) = 'true' then (cast(json_extract(hub.extra_data,'$.total_income') as bigint) - cast(json_extract(hub.extra_data,'$.calculated_shipping_shared') as bigint))
+else 0 end as extra_ship
+
+,base1.bwf
+,0 as surge
+
+,case when base1.report_date between date('2021-07-09') and date('2021-10-05') and base1.city_group = 'HCM' then base1.delivery_cost + base1.bonus
+when base1.report_date between date('2021-07-24') and date('2021-10-04') and base1.city_group = 'HN' then base1.delivery_cost + base1.bonus
+else if(cast(json_extract(hub.extra_data,'$.total_order') as bigint) = base1.total_order,cast(json_extract(hub.extra_data,'$.total_income') as bigint),13500*base1.total_order) end as total_income
+
+FROM
+
+(SELECT base.report_date
+,base.created_year_week
+,base.city_group
+,base.uid
+,base.hub_type
+,base.shipper_name
+,count(case when base.is_inshift = 1 then base.ref_order_id else null end ) as total_order
+,sum(case when base.is_inshift = 1 then base.delivery_cost else null end) as delivery_cost
+,sum(case when base.is_inshift = 1 then base.bonus else null end) as bonus 
+,sum(case when base.is_inshift = 1 then base.bwf else null end) as bwf
+FROM
+(SELECT dot.uid
+        ,psm.shipper_name
+        ,case
+        WHEN dot.pick_city_id = 217 then 'HCM'
+        WHEN dot.pick_city_id = 218 then 'HN'
+        ELSE 'OTH' end as city_group
+        ,psm.city_name
+        ,date(from_unixtime(dot.real_drop_time -3600)) as report_date
+        ,YEAR(date(from_unixtime(dot.real_drop_time -3600)))*100 + WEEK(date(from_unixtime(dot.real_drop_time -3600))) as created_year_week
+        ,case
+        WHEN st.shift_hour = 5 then '5 hour shift'
+        WHEN st.shift_hour = 8 then '8 hour shift'
+        WHEN st.shift_hour = 10 then '10 hour shift'
+        ELSE add.hub_type END AS hub_type
+        ,case when date(from_unixtime(dot.real_drop_time -3600)) between date('2021-07-09') and date('2021-10-05') and psm.shipper_type_id = 12 and dot.pick_city_id = 217 then 1
+        when date(from_unixtime(dot.real_drop_time -3600)) between date('2021-07-24') and date('2021-10-04') and psm.shipper_type_id = 12 and dot.pick_city_id = 218 then 1
+        when cast(json_extract(doet.order_data,'$.shipper_policy.type') as bigint) = 2 then 1 else 0 end as is_inshift
+        ,dot.delivery_cost*1.00/100 as delivery_cost
+        ,dot.ref_order_id
+        ,case when date(from_unixtime(dot.real_drop_time -3600))  between date('2021-07-09') and date('2021-10-05') and dot.pick_city_id = 217 then 10000
+        when date(from_unixtime(dot.real_drop_time -3600))  between date('2021-09-18') and date('2021-10-04') and dot.pick_city_id = 218 then 10000
+        else 0 end as bonus 
+        ,coalesce(cast(json_extract(order_data,'$.shipping_fee_config.bad_weather_surge.surge_min_fee') as bigint ),0) as bwf
+
+FROM foody.foody_partner_db__driver_order_tab dot
+
+LEFT JOIN (SELECT *,date(from_unixtime(date_ts - 3600)) as report_date 
+,(end_time - start_time)/3600 as shift_hour
+from
+foody.foody_internal_db__shipper_slot_registration_tab__vn_daily_s0_live)st on st.uid = dot.uid and st.report_date = date(from_unixtime(dot.real_drop_time -3600))
+
+---check hub
+LEFT JOIN
+(
+select *
+,Case
+when grass_date = 'current' then date(current_date)
+else cast(grass_date AS DATE ) END as report_date
+from shopeefood.foody_mart__profile_shipper_master
+  where grass_region = 'VN'
+) psm on psm.shipper_id = dot.uid AND psm.report_date = date(from_unixtime(dot.real_drop_time -3600))
+left join foody.foody_order_db__order_completed_tab oct on oct.id = dot.ref_order_id
+LEFT JOIN foody.foody_partner_db__driver_order_extra_tab doet on dot.id = doet.order_id
+
+---shift add on 
+LEFT JOIN ( SELECT *,case
+        WHEN shift_hour = 5 then '5 hour shift'
+        WHEN shift_hour = 8 then '8 hour shift'
+        WHEN shift_hour = 10 then '10 hour shift'
+        ELSE null END AS hub_type
+        FROM
+(select 
+    id,date_format(from_unixtime(start_time - 25200),'%H') as start_time
+,date_diff('hour',date_trunc('hour',from_unixtime(start_time - 3600)),date_trunc('hour',from_unixtime(end_time-3600))) as shift_hour
+FROM foody.foody_internal_db__shipper_shift_tab)
+) add on add.id = psm.shipper_shift_id
+
+WHERE 1=1
+AND dot.pick_city_id in (217,218)
+AND psm.shipper_type_id in (12)
+and dot.ref_order_category = 0
+--and dot.uid in (19525865)
+and psm.city_id in (217,218)
+AND dot.ref_order_status in (7,9,11)
+----input period 
+AND date(from_unixtime(dot.real_drop_time -3600)) >= date((current_date) - interval '30' day)
+and date(from_unixtime(dot.real_drop_time -3600)) < date(current_date) 
+----
+)base
+where base.is_inshift = 1
+GROUP BY 1,2,3,4,5,6)base1
+ 
+ 
+left join (select * from foody.foody_internal_db__shipper_hub_income_report_tab )hub on hub.uid = base1.uid and date(from_unixtime(hub.report_date - 3600)) = base1.report_date
+left join  foody_bi_anlys.snp_foody_hub_driver_mapping_tab info on info.shipper_id = base1.uid and base1.report_date = info.report_date
+ )base2 
+ WHERE base2.report_date between current_date - interval '30' day and current_date - interval '1' day
+ GROUP BY 1,2,3,4,5,6,7,8 )all
+
+---Shipper register
+
+LEFT JOIN 
+        (SELECT '1. Hub Performance' as group_metrics
+        ,do.date_ as date_
+        ,case when sm.city_id = 217 then 'HCM'
+              when sm.city_id = 218 then 'HN'
+              else 'OTH' end as city_group
+        
+        --,do.shift_hour
+               ,case
+                WHEN do.shift_hour = 5 then '5 hour shift'
+                WHEN do.shift_hour = 8 then '8 hour shift'
+                WHEN do.shift_hour = 10 then '10 hour shift'
+                ELSE 'HUB' END AS hub_type
+        ,ht.hub_name    
+        ,count(case when registration_status = 'Registered' or  registration_status =  'Worked' then do.uid else null end)*1.00/count(distinct do.date_) as register_driver
+        FROM
+        (SELECT date(from_unixtime(date_ts - 3600)) as date_,uid,slot_id
+        ,case when registration_status = 1 then 'Registered'
+            when registration_status = 2 then 'OFF'
+            when registration_status = 3 then 'Worked'
+            end as registration_status
+        ,(end_time - start_time)/3600 as shift_hour
+
+        from foody.foody_internal_db__shipper_slot_registration_tab__vn_daily_s0_live ) do
+
+
+        --Shipper HUB
+        LEFT JOIN (SELECT *,case when grass_date = 'current' then date(current_date) else cast(grass_date as date) end as report_date
+        FROM
+        shopeefood.foody_mart__profile_shipper_master
+                  where grass_region = 'VN') sm on sm.shipper_id = do.uid and sm.report_date =(case when do.date_ > sm.report_date then date(current_date)  
+                                                                                                            else do.date_ end)
+        --HUB Locations
+        LEFT JOIN shopeefood.foody_internal_db__shipper_config_slot_tab__vn_daily_s0_live hi on hi.id = do.slot_id
+        LEFT JOIN shopeefood.foody_internal_db__shipper_hub_info_tab__reg_daily_s0_live ht on ht.id = hi.hub_id
+       
+
+
+        where 1 = 1
+        and date_ between current_date - interval '30' day and current_date - interval '1' day
+        and date_ >= date('2021-10-21')
+        and sm.shipper_type_id = 12
+        and sm.shipper_status_code = 1
+        and sm.city_name != 'Dien Bien'
+        GROUP BY 1,2,3,4,5) reg on reg.date_ = all.report_date
+                                  and reg.city_group = all.city_group
+                                  and reg.hub_type = all.hub_type
+                                  and reg.hub_name = all.hub_name
+
+---BEFORE AUTO ARRANGE SHIFT
+        LEFT JOIN 
+                 (
+SELECT base1.report_date
+      ,report_week
+      ,city_group
+      ,hub_type
+      ,hub_name
+      ,count(distinct shipper_id) as expected_driver
+FROM 
+(
+SELECT base.report_date
+      ,cast(date_format(cast(base.report_date as TIMESTAMP),'%a') as varchar) days_of_week
+      ,case
+            when base.report_date between DATE('2021-01-01') and DATE('2021-01-03') then 202053
+            else YEAR(base.report_date)*100 + WEEK(base.report_date) end as report_week
+      ,base.off_date
+      ,base.shipper_id 
+      ,base.city_group
+      ,hub.hub_name
+      ,case when base.end_shift - base.start_shift = 10 then '10 hour shift'
+            when base.end_shift - base.start_shift = 8 then '8 hour shift'
+            when base.end_shift - base.start_shift = 5 then '5 hour shift'
+            else null end as hub_type
+      ,coalesce(in_shift_work_time,0) in_shift_work_time
+      ,coalesce(oct_cnt_total_order_in_shift,0) cnt_total_order_in_shift
+
+FROM 
+(
+ SELECT  sm.shipper_id
+    ,sm.shipper_type_id  
+    ,case when sm.grass_date = 'current' then date(current_date)
+        else cast(sm.grass_date as date) end as report_date
+    ,shipper_shift_id
+    ,case when sm.city_id = 217 then 'HCM'
+          when sm.city_id = 218 then 'HN'
+          else 'OTH' end as city_group
+    ,ss.start_time/3600 as start_shift
+    ,ss.end_time/3600 as end_shift
+    ,off_weekdays
+    ,array_join(array_agg(cast(d_.cha_date as VARCHAR)),', ') as off_date
+
+    
+    from shopeefood.foody_mart__profile_shipper_master sm
+    left join shopeefood.foody_internal_db__shipper_shift_tab__reg_daily_s0_live	 ss on ss.id = sm.shipper_shift_id
+    
+    left join 
+             (SELECT   
+                     case when off_weekdays = '1' then 'Mon'
+                          when off_weekdays = '2' then 'Tue'
+                          when off_weekdays = '3' then 'Wed'
+                          when off_weekdays = '4' then 'Thu'
+                          when off_weekdays = '5' then 'Fri'
+                          when off_weekdays = '6' then 'Sat'
+                          when off_weekdays = '7' then 'Sun'
+                          else 'No off date' end as cha_date 
+                     ,off_weekdays as num_date     
+                          
+              FROM foody.foody_internal_db__shipper_shift_tab         
+              WHERE 1=1
+              and off_weekdays in ('1','2','3','4','5','6','7')
+              GROUP BY 1,2
+             )d_ on regexp_like(off_weekdays,cast(d_.num_date  as varchar)) = true 
+    where 1=1
+    and grass_region = 'VN'
+    and city_name in ('HCM City','Ha Noi City')
+    and shipper_type_id = 12
+    and shipper_status_code = 1
+    
+GROUP BY 1,2,3,4,5,6,7,8
+)base
+
+LEFT JOIN foody_bi_anlys.snp_foody_hub_driver_report_tab hdr on hdr.shipper_id = base.shipper_id and hdr.report_date = base.report_date -- replace ADO
+LEFT JOIN foody_bi_anlys.snp_foody_hub_driver_mapping_tab hub on hub.shipper_id = base.shipper_id and hub.report_date = base.report_date -- hub name
+
+order by base.report_date desc
+)base1 
+
+where 1=1
+
+and (regexp_like(off_date,base1.days_of_week) = false or cnt_total_order_in_shift > 0)
+and base1.report_date >= date('2021-10-21') - interval '30' day 
+and base1.report_date < date('2021-10-21')
+group by 1,2,3,4,5
+                )bf on bf.report_date = all.report_date 
+                    and bf.city_group = all.city_group 
+                    and bf.hub_type = all.hub_type
+                    and bf.hub_name = all.hub_name
+  where is_resume = 1                  )
+----
+select 
+      a.report_date 
+      ,a.created_year_week
+      ,a.city_group
+      ,a.hub_name
+      ,'5. Active Driver' as metrics_group
+      ,sum(active_driver) as value
+from data a 
+where 1 = 1 
+group by 1,2,3,4,5
+
+UNION ALL
+
+select 
+      b.report_date
+      ,b.created_year_week
+      ,b.city_group
+      ,b.hub_name
+      ,group_compensated as metrics_group
+      ,sum(driver_compensate) as value 
+from data b 
+where group_compensated != '5. No Compensated'
+group by 1,2,3,4,5

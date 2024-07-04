@@ -1,0 +1,19 @@
+
+SELECT *
+      ,try((total_driver_cost_non_hub*ado_non_hub + total_driver_cost_hub*ado_hub)*1.0000/(ado_hub+ado_non_hub)) as total_driver_cost_all
+FROM 
+(
+select  grass_date 
+      , sum(ado_hub) ado_hub
+      , sum(ado_non_hub) ado_non_hub
+      , sum(ado_hub + ado_non_hub) as ado_all 
+      , sum(driver_cost_non_hub + bonus_non_hub - bad_weather_cost_non_hub - holiday_cost_non_hub - late_night_cost_non_hub) as total_driver_cost_non_hub
+      , sum(driver_cost_hub + bonus_hub - bad_weather_cost_hub - holiday_cost_hub - late_night_cost_hub) as total_driver_cost_hub
+
+from dev_vnfdbi_opsndrivers.shopeefood_vn_bnp_drivers_driver_cost_bonus_daily_tab
+
+where 1=1 
+and city_name = 'All'
+and source = 'Market'
+group by 1
+)

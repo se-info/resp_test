@@ -1,0 +1,173 @@
+with data_realtime as 
+(SELECT date_ 
+      ,hour_
+      ,city_group
+      ,hub_type
+      ,sum(total_stack) as stack_order
+      ,sum(total_order) as total_order
+      ,sum(case when shipper_type_id = 12 then total_order else null end) as total_hub_order
+      ,count(distinct case when total_order > 0 and shipper_type_id = 12 then uid else null end) as total_active
+      
+FROM       
+(SELECT      a.uid
+          ,concat(cast((slot.end_time - slot.start_time)/3600 as varchar),'-','hour shift') as hub_type    
+          ,sm.shipper_name
+          ,sm.shipper_type_id 
+          ,sm.city_name
+          ,date(from_unixtime(real_drop_time - 3600)) as date_
+          ,date_format(from_unixtime(real_drop_time - 3600),'%H') as hour_
+          ,case when a.pick_city_id = 217 then '2. HCM'
+                when a.pick_city_id = 218 then '3. HN'
+                else 'OTH' end as city_group
+          ,count(ref_order_id ) as total_order
+          ,count(case when group_id >0 then ref_order_id else null end) as total_stack
+          
+    FROM shopeefood.foody_partner_db__driver_order_tab__reg_continuous_s0_live  a 
+    LEFT JOIN shopeefood.foody_mart__profile_shipper_master sm on sm.shipper_id = a.uid
+    LEFT JOIN shopeefood.foody_internal_db__shipper_slot_registration_tab__vn_daily_s0_live slot on slot.uid = a.uid 
+                                                                            and date(from_unixtime(date_ts - 3600)) = date(from_unixtime(real_drop_time - 3600))
+    where 1 = 1 
+    and sm.grass_date = 'current'
+    and date(from_unixtime(real_drop_time - 3600)) = date(now())
+    and date(from_unixtime(date_ts - 3600)) = date(now())
+    and a.pick_city_id in (217,218)
+    
+    --and sm.shipper_type_id = 12
+    and ref_order_category = 0
+    --and slot.uid is not null
+    and order_status = 400
+    and extract( hour from from_unixtime(real_drop_time - 3600)) between 8 and 21
+    group by 1,2,3,4,5,6,7,8
+    )
+  
+GROUP BY 1,2,3,4)
+
+,data_historical as 
+(SELECT date_ 
+      ,hour_
+      ,city_group
+      ,hub_type
+      ,sum(total_stack) as stack_order
+      ,sum(total_order) as total_order
+      ,sum(case when shipper_type_id = 12 and policy_type = 2 then total_order else null end) as total_hub_order
+      ,count(distinct case when total_order > 0 and shipper_type_id = 12 then uid else null end) as total_active
+
+      
+      
+FROM       
+(SELECT      a.uid
+          ,concat(cast((slot.end_time - slot.start_time)/3600 as varchar),'-','hour shift') as hub_type  
+          ,sm.shipper_name
+          ,sm.city_name
+          ,cast(json_extract(doet.order_data,'$.shipper_policy.type') as bigint) as policy_type
+          ,sm.shipper_type_id
+          ,date(from_unixtime(real_drop_time - 3600)) as date_
+          ,date_format(from_unixtime(real_drop_time - 3600),'%H') as hour_
+          ,case when a.pick_city_id = 217 then '2. HCM'
+                when a.pick_city_id = 218 then '3. HN'
+                else 'OTH' end as city_group
+          ,count(ref_order_id ) as total_order
+          ,count(case when group_id >0 then ref_order_id else null end) as total_stack
+          
+    FROM shopeefood.foody_partner_db__driver_order_tab__reg_daily_s0_live a 
+     --Check policy
+    LEFT JOIN shopeefood.foody_partner_db__driver_order_extra_tab__reg_daily_s0_live doet on a.id = doet.order_id
+    ---Check Hub
+    LEFT JOIN (SELECT *, case when grass_date = 'current' then date(current_date) else cast(grass_date as date) end as report_date
+    FROM
+    shopeefood.foody_mart__profile_shipper_master )sm on sm.shipper_id = a.uid and sm.report_date = date(from_unixtime(real_drop_time - 3600))
+    LEFT JOIN shopeefood.foody_internal_db__shipper_slot_registration_tab__vn_daily_s0_live slot on slot.uid = a.uid 
+                                                                            and date(from_unixtime(date_ts - 3600)) = date(from_unixtime(real_drop_time - 3600))
+   
+    where 1 = 1 
+    and ( 
+    date(from_unixtime(real_drop_time - 3600)) = current_date - interval '7' day or date(from_unixtime(real_drop_time - 3600)) = current_date - interval '1' day 
+        )
+    and ref_order_category = 0
+    and extract( hour from from_unixtime(real_drop_time - 3600)) between 8 and 21
+    and order_status = 400
+    and pick_city_id in (217,218)
+    group by 1,2,3,4,5,6,7,8,9)
+
+GROUP BY 1,2,3,4)
+,dod as 
+(
+     select b.hour_
+     ,'1. All' as city_group
+     ,sum(b.total_order) total_order
+     ,sum(b.stack_order) stack_order
+     ,sum(b.total_active) total_active
+     ,sum(b.total_hub_order) total_hub_order 
+     
+     from data_historical b
+     where b.date_ = current_date - interval '1' day
+     group by 1,2
+     )
+
+
+SELECT  a.*
+
+FROM 
+(select   cast(a.date_ as varchar) as period
+        ,a.hour_
+        ,'3. Historical' as metrics
+        ,'1. All' as city_group
+        --,'1. All' as hub_type
+        ,sum(a.stack_order) as stack_order
+        ,sum(a.total_order) as total_order
+        ,sum(a.total_active) as total_active
+        ,sum(a.total_hub_order) as total_hub_order
+        
+from data_historical a
+GROUP BY 1,2,3,4
+
+UNION ALL
+
+SELECT  cast(b.date_ as varchar) as period
+        ,b.hour_
+        ,'2. Realtime' as metrics
+        ,'1. All' as city_group
+        --,'1. All' as hub_type
+        ,sum(b.stack_order) as stack_order
+        ,sum(b.total_order) as total_order
+        ,sum(b.total_active) as total_active
+        ,sum(b.total_hub_order) as total_hub_order
+
+from data_realtime b
+GROUP BY 1,2,3,4)a 
+
+UNION ALL
+
+SELECT  'DoD' as period 
+        ,d.hour_ 
+        ,'1. DoD' as metrics
+        ,d.city_group 
+        --,a.hub_type
+        ,case when coalesce(c.stack_order,0) = null or coalesce(d.stack_order,0) = null then null else  (d.stack_order - c.stack_order)*1.0000/d.stack_order end as stack_order
+        ,case when coalesce(c.total_order,0) = null or coalesce(d.total_order,0) = null then null else  (d.total_order - c.total_order)*1.0000/d.total_order end as total_order
+        ,case when coalesce(c.total_active,0) = null or coalesce(d.total_active,0) = null then null else  (d.total_active - c.total_active)*1.0000/d.total_active end as total_active
+        ,case when coalesce(c.total_hub_order,0) = null or coalesce(d.total_hub_order,0) = null then null else  (d.total_hub_order - c.total_hub_order)*1.0000/d.total_hub_order end as total_hub_order
+       
+        
+
+    from (select  
+cast(a.date_ as varchar) as period
+        ,a.hour_
+        ,'3. Historical' as metrics
+        ,'1. All' as city_group
+        --,'1. All' as hub_type
+        ,sum(a.stack_order) as stack_order
+        ,sum(a.total_order) as total_order
+        ,sum(a.total_active) as total_active
+        ,sum(a.total_hub_order) as total_hub_order
+    
+    
+from     
+    data_realtime a 
+    GROUP BY 1,2,3,4) d 
+
+    left  join 
+    dod c  on c.hour_ = d.hour_ and d.city_group = c.city_group
+
+
+

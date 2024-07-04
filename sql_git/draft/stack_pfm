@@ -1,0 +1,249 @@
+SELECT base1.created_date
+,base1.city_group
+,base1.distance_range
+,base1.created_hour
+,base1.is_stack_order
+,base1.is_rain
+,approx_percentile(base1.lt_completion*1.0000/60,0.95) as completion_time_percentile_95
+,count(distinct base1.id) as total_delivered_order
+
+
+from
+(SELECT base.id 
+,base.created_date
+,base.city_group
+,base.distance_range
+,base.lt_completion
+,case when ogm.ref_order_id is not null then 1 else 0 end as is_stack_order
+,base.created_hour
+,coalesce(rain_mode.is_rain_negative,0) is_rain
+
+from
+(SELECT oct.id
+,'order_delivery' as source
+,oct.shipper_uid as shipper_id
+-- order distance
+,oct.distance
+,case when oct.distance <= 1 then '1. 0-1km'
+    when oct.distance <= 2 then '2. 1-2km'
+    when oct.distance <= 3 then '3. 2-3km'
+    when oct.distance <= 4 then '4. 3-4km'
+    when oct.distance <= 5 then '5. 4-5km'
+    -- when oct.distance <= 10 then '4. 7-10km'
+    when oct.distance > 5 then '6. 5km+'
+    else null end as distance_range
+
+-- time
+,from_unixtime(oct.submit_time - 60*60) as created_timestamp
+,cast(from_unixtime(oct.submit_time - 60*60) as date) as created_date
+,format_datetime(cast(from_unixtime(oct.submit_time - 60*60) as date),'EE') as created_day_of_week
+,case when cast(from_unixtime(oct.submit_time - 60*60) as date) between DATE('2018-12-31') and DATE('2018-12-31') then 201901
+    when cast(from_unixtime(oct.submit_time - 60*60) as date) between DATE('2019-12-30') and DATE('2019-12-31') then 202001
+    when cast(from_unixtime(oct.submit_time - 60*60) as date) between DATE('2021-01-01') and DATE('2021-01-03') then 202053
+    else YEAR(cast(from_unixtime(oct.submit_time - 60*60) as date))*100 + WEEK(cast(from_unixtime(oct.submit_time - 60*60) as date)) end as created_year_week
+,concat(cast(YEAR(from_unixtime(oct.submit_time - 60*60)) as VARCHAR),'-',date_format(from_unixtime(oct.submit_time - 60*60),'%b')) as created_year_month
+,Extract(HOUR from from_unixtime(oct.submit_time - 60*60)) as created_hour
+,case when Extract(HOUR from from_unixtime(oct.submit_time - 60*60)) <= 5 then '5. 22:00-5:00'
+when Extract(HOUR from from_unixtime(oct.submit_time - 60*60)) <= 10 then '1. 6:00-10:00'
+when Extract(HOUR from from_unixtime(oct.submit_time - 60*60)) <= 13 then '2. 11:00-13:00'
+when Extract(HOUR from from_unixtime(oct.submit_time - 60*60)) <= 17 then '3. 14:00-17:00'
+when Extract(HOUR from from_unixtime(oct.submit_time - 60*60)) <= 21 then '4. 18:00-21:00'
+when Extract(HOUR from from_unixtime(oct.submit_time - 60*60)) <= 23 then '5. 22:00-5:00'
+else null end as created_hour_range
+
+-- incharge time
+--,osl.first_auto_assign_timestamp
+--,osl.last_incharge_timestamp
+--,date_diff('second',osl.first_auto_assign_timestamp,osl.last_incharge_timestamp) as lt_incharge -- from 1st auto assign to last incharge
+
+-- completion time
+--,osl.last_delivered_timestamp
+,date_diff('second',from_unixtime(oct.submit_time - 60*60),from_unixtime(oct.final_delivered_time - 60*60)) as lt_completion
+
+-- order info
+,case when oct.status = 7 then 'Delivered'
+when oct.status = 8 then 'Cancelled'
+when oct.status = 9 then 'Quit' end as order_status
+,case when oct.foody_service_id = 1 then 'Food'
+    when oct.foody_service_id = 3 then 'Laundy'
+    when oct.foody_service_id = 4 then 'Products'
+    when oct.foody_service_id = 5 then 'Fresh'
+    when oct.foody_service_id = 6 then 'Flowers'
+    when oct.foody_service_id = 7 then 'Medicine'
+    when oct.foody_service_id = 12 then 'Pets'
+    when oct.foody_service_id = 13 then 'Liquor'
+    when oct.foody_service_id = 15 then 'Salon'
+    else 'Others' end as foody_service
+
+-- location
+-- ,case when oct.city_id = 238 THEN 'Dien Bien' else city.city_name end as city_name
+,case when oct.city_id  = 217 then 'HCM'
+    when oct.city_id  = 218 then 'HN'
+    when oct.city_id  = 219 then 'DN' 
+    when oct.city_id  = 220 then 'HP'
+    when oct.city_id  = 221 then 'CT'
+    when oct.city_id  = 222 then 'DNAI'
+    when oct.city_id  = 223 then 'VT'
+    when oct.city_id  = 230 then 'BD'
+    when oct.city_id  = 273 then 'HUE'else 'OTH' 
+    end as city_group
+--,district.district_name
+,city_id
+,district_id
+-- flag
+,oct.is_foody_delivery
+,oct.is_asap
+
+-- payment
+,case when oct.payment_method = 1 then 'Cash'
+    when oct.payment_method = 6 then 'Airpay'
+    else 'Others' end as payment_method
+
+
+
+from shopeefood.foody_order_db__order_completed_tab__reg_daily_s0_live oct
+   
+    -- location
+--    left join (SELECT city_id
+  --              ,city_name
+                
+     --           from foody.foody_mart__fact_gross_order_join_detail
+     --           where from_unixtime(create_timestamp) between date(cast(now() - interval '30' day as TIMESTAMP)) and date(cast(now() - interval '1' hour as TIMESTAMP))
+                
+     --           GROUP BY city_id
+     --           ,city_name
+     --       )city on city.city_id = oct.city_id
+
+--    left join (SELECT district_id
+  --              ,district_name
+    --            
+      --          from foody.foody_mart__fact_gross_order_join_detail
+        --        where from_unixtime(create_timestamp) between date(cast(now() - interval '30' day as TIMESTAMP)) and date(cast(now() - interval '1' hour as TIMESTAMP))
+          --      
+            --    GROUP BY district_id
+              --  ,district_name
+    --        )district on district.district_id = oct.district_id
+
+-- assign time: request archive log
+ --   left join
+   --             (SELECT order_id
+     --               ,min(case when status = 21 then cast(from_unixtime(create_time) as TIMESTAMP) - interval '1' hour else null end) as first_auto_assign_timestamp
+       --             ,max(case when status = 11 then cast(from_unixtime(create_time) as TIMESTAMP) - interval '1' hour else null end) as last_incharge_timestamp
+         --           ,max(case when status = 7 then cast(from_unixtime(create_time) as TIMESTAMP) - interval '1' hour else null end) as last_delivered_timestamp
+                    
+           --         from foody.foody_order_db__order_status_log_tab
+        --            where 1=1
+          --          group by order_id
+            --    )osl on osl.order_id = oct.id
+
+)base
+
+    LEFT JOIN shopeefood.foody_partner_db__order_group_mapping_tab__reg_daily_s0_live ogm on base.id = ogm.ref_order_id and ogm.mapping_status = 11 and ogm.ref_order_category = 0
+        LEFT JOIN shopeefood.foody_partner_db__order_group_mapping_tab__reg_daily_s0_live ogm_filter on base.id = ogm_filter.ref_order_id and ogm_filter.mapping_status = 11
+                                                                                                                and ogm_filter.ref_order_category = 0
+                                                                                                                and ogm_filter.create_time >  ogm.create_time
+    LEFT JOIN shopeefood.foody_partner_db__order_group_info_tab__reg_daily_s0_live ogi on ogi.id = ogm.group_id
+
+---rain
+LEFT JOIN 
+(
+        SELECT   base.id 
+            	,base.city_id
+            	,base.district_id
+            	,base.weather 
+            	,base.is_rain_negative
+            	,base.create_time as start_time
+            	,base.running_time
+            	,base.end_time
+        
+        
+        from
+                (SELECT all.id 
+                ,all.city_id
+                ,all.district_id
+                ,all.weather 
+                ,all.create_time
+                ,date_diff('second',all.create_time,next_call.create_time) as running_time
+                ,next_call.create_time as end_time
+                ,case when all.weather in ('Rain','Thundershower','Heavy thunderstorm','Thunderstorm',
+                							'Heavy rain','Rain shower','Heavy rain shower','A shower') then 1 else 0 end as is_rain_negative
+                
+                
+                
+                from
+                (SELECT adt.id
+                ,adt.city_id
+                ,adt.district_id
+                ,trim(replace(cast(json_extract(adt.weather_data,'$[0].WeatherText') as VARCHAR),'"')) as weather
+                ,cast(json_extract(adt.weather_data,'$[0].HasPrecipitation') as VARCHAR) as is_rain
+                
+                ,from_unixtime(adt.query_time - 60*60) as query_time
+                ,from_unixtime(adt.create_time - 60*60) as create_time
+                
+                
+                from foody.foody_geo_db__accuweather_data_tab adt
+                			  
+                
+                where 1=1
+                and date(from_unixtime(adt.create_time - 60*60)) between date(now()) - interval '15' day and date(now()) - interval '1' day
+                )all
+        	
+    	LEFT JOIN (SELECT id
+    					,city_id
+    					,district_id
+    					,trim(replace(cast(json_extract(weather_data,'$[0].WeatherText') as VARCHAR),'"')) as weather
+    					,cast(json_extract(weather_data,'$[0].HasPrecipitation') as VARCHAR) as is_rain
+    					,from_unixtime(query_time - 60*60) as query_time
+    					,from_unixtime(create_time - 60*60) as create_time
+    					
+    					
+			       from foody.foody_geo_db__accuweather_data_tab
+			       where 1=1
+
+				   and date(from_unixtime(create_time - 60*60)) between date(now()) - interval '15' day and date(now()) - interval '1' day
+       
+    			   )next_call on next_call.city_id = all.city_id and next_call.district_id = all.district_id and next_call.create_time > all.create_time
+        																										  and next_call.create_time < all.create_time + interval '1' hour    
+        	
+        LEFT JOIN (SELECT id
+    					,city_id
+    					,district_id
+    					,trim(replace(cast(json_extract(weather_data,'$[0].WeatherText') as VARCHAR),'"')) as weather
+    					,cast(json_extract(weather_data,'$[0].HasPrecipitation') as VARCHAR) as is_rain
+    					,from_unixtime(query_time - 60*60) as query_time
+    					,from_unixtime(create_time - 60*60) as create_time
+    					
+    					
+			   	   from foody.foody_geo_db__accuweather_data_tab
+			       where 1=1
+				   and date(from_unixtime(create_time - 60*60)) between date(now()) - interval '15' day and date(now()) - interval '1' day
+   
+				   )next_call_filter on next_call_filter.city_id = all.city_id and next_call_filter.district_id = all.district_id 
+        																			and next_call_filter.create_time > all.create_time 
+        																			and next_call_filter.create_time < all.create_time + interval '1' hour
+        																			and next_call_filter.create_time < next_call.create_time
+        
+        
+        where 1=1
+        and next_call_filter.id is null
+        
+        )base
+
+	
+where base.running_time is not null 
+)rain_mode on rain_mode.city_id = base.city_id and rain_mode.district_id = base.district_id and base.created_timestamp >= rain_mode.start_time and base.created_timestamp < rain_mode.end_time 
+
+where 1=1
+--and base.created_date >= date('2021-01-01')
+-- and base.created_year_week > YEAR(date(current_date) - interval '65' day)*100 + WEEK(date(current_date) - interval '65' day)
+and base.created_date >= date(now() - interval '15' day)
+and base.created_date <= date(now() - interval '1' day)
+--and base.city_group in('HCM', 'HN')
+and base.order_status = 'Delivered'
+and base.is_asap = 1
+and ogm_filter.create_time is null
+
+
+)base1 
+
+GROUP BY 1,2,3,4,5,6
