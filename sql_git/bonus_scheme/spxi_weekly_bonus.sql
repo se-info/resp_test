@@ -69,8 +69,8 @@ GROUP BY 1,2
 HAVING 
 (CASE 
 WHEN COUNT(DISTINCT CASE WHEN online_hour >= 8 AND sla_rate >= 95 THEN report_date ELSE NULL END) > 5 AND SUM(e2c+c2c) >= 180 then 300000
-WHEN COUNT(DISTINCT CASE WHEN online_hour >= 8 AND sla_rate >= 95 THEN report_date ELSE NULL END) >= 5 AND SUM(e2c+c2c) BETWEEN 150 and 179 then 150000
-WHEN COUNT(DISTINCT CASE WHEN online_hour >= 8 AND sla_rate >= 95 THEN report_date ELSE NULL END) >= 4 AND SUM(e2c+c2c) BETWEEN 120 and 149 then 100000
+WHEN COUNT(DISTINCT CASE WHEN online_hour >= 8 AND sla_rate >= 95 THEN report_date ELSE NULL END) >= 5 AND SUM(e2c+c2c) >= 150 then 150000
+WHEN COUNT(DISTINCT CASE WHEN online_hour >= 8 AND sla_rate >= 95 THEN report_date ELSE NULL END) >= 4 AND SUM(e2c+c2c) >= 120 then 100000
 END) > 0
 )
 SELECT *
