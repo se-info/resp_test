@@ -1,0 +1,6 @@
+train: C:\Users\duphong.hua\Documents\phong_document\test_yolo\pod_path\train\images
+val: C:\Users\duphong.hua\Documents\phong_document\test_yolo\pod_path\val\images
+test: C:\Users\duphong.hua\Documents\phong_document\test_yolo\pod_path\test\images
+
+nc: 1
+names: ['pod']
