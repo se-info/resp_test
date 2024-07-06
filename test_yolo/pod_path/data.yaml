@@ -1,6 +1,6 @@
-train: C:\Users\duphong.hua\Documents\phong_document\test_yolo\pod_path\train\images
-val: C:\Users\duphong.hua\Documents\phong_document\test_yolo\pod_path\val\images
-test: C:\Users\duphong.hua\Documents\phong_document\test_yolo\pod_path\test\images
+train: C:\Users\duphong.hua\Documents\phong_document\git\resp_test\test_yolo\pod_path\train
+val: C:\Users\duphong.hua\Documents\phong_document\git\resp_test\test_yolo\pod_path\val
+test: C:\Users\duphong.hua\Documents\phong_document\git\resp_test\test_yolo\pod_path\test
 
 nc: 1
 names: ['pod']
