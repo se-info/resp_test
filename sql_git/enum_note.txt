@@ -560,3 +560,20 @@ CUSTOM_DATE = 2
 DEFAULT = 
 ;
 shopeefood_merchant.foody_merchant_db__restaurant_prepare_time_with_time_ranges_tab__reg_daily_s0_live - get whitelist DA 
+;
+C2C paid status 
+class PaidStatus(EnumBase):
+   ERROR = -1
+   INIT = 1
+   PAID = 2
+   PENDING = 3
+   PENDING_AUTH = 4
+   FAILED = 5
+   PENDING_REFUND = 6
+   PARTIAL_REFUNDED = 7
+   REFUNDED = 8
+   REFUND_FAILED = 9
+   PREPAID_COD = 10
+   RECHARGED_MERCHANT = 11
+   RECHARGED_MERCHANT_FAILED = 12
+   PENDING_RECHARGE = 13

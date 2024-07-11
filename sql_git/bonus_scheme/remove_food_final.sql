@@ -15,7 +15,7 @@ left join shopeefood.foody_delivery_db__district_tab__reg_daily_s0_live di on di
 where 1 = 1 
 and a.shipper_id > 0 
 and a.order_status in ('Delivered')
-and date(a.delivered_timestamp) = date'2024-05-06'
+and date(a.delivered_timestamp) = date'2024-07-07'
 and a.order_type = 6
 )
 ,eligible_driver as 
@@ -48,13 +48,13 @@ group by 1,2,3,4
         sm.city_name,
         ed.*,
         case 
-        when ed.online_hour >= 8 and ed.sla_rate >= 95 and district_filter > 0 then 180000 else 0 end as bonus_value
+        when ed.online_hour >= 8 and ed.sla_rate >= 95 and district_filter > 0 and total_order >= 25 then 180000 else 0 end as bonus_value
 
 
 from eligible_driver ed 
 
 left join shopeefood.foody_mart__profile_shipper_master sm on sm.shipper_id = ed.shipper_id and sm.grass_date = 'current'
--- where ed.online_hour >= 8 and ed.sla_rate >= 95 and district_filter > 0 and ed.total_order >= 25
+where ed.online_hour >= 8 and ed.sla_rate >= 95 and district_filter > 0 and ed.total_order >= 25
 )
 select
         t2.*,
