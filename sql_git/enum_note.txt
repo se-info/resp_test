@@ -577,3 +577,500 @@ class PaidStatus(EnumBase):
    RECHARGED_MERCHANT = 11
    RECHARGED_MERCHANT_FAILED = 12
    PENDING_RECHARGE = 13
+--
+kyc_tab * applicant_tab enum
+   https://confluence.shopee.io/pages/viewpage.action?pageId=978721856#id-10.8.7.2.3%E6%9E%9A%E4%B8%BE%E5%AD%97%E5%85%B8-KYCRejectReason
+
+--
+manual bonus tab 
+vnfdbi_opsndrivers.shopeefood_vn_bnp_manual_bonus_order_level
+
+---
+common_status
+class CommonStatus(EnumBase):
+    INACTIVE = 0
+    ACTIVE = 1
+    DELETE = 2
+account_status
+class AccountStatus(EnumBase):
+    INACTIVE = 0
+    ACTIVE = 1
+    DELETED = 2
+    BANNED = 3
+marital_status
+NOT_SET = 'N'
+SINGLE = 'S'
+MARRIED = 'M'
+DIVORCED = 'D'
+national_id
+class CountryId(EnumBase):
+    VIETNAM = 86
+    UNITED_STATES = 1
+    THAILAND = 76
+take_order_status
+骑手的接单状态
+
+class ShipperOrderStatus(EnumBase):
+    NORMAL = 1
+    STOP = 2
+    PENDING = 3
+shipper_status
+骑手的指派状态（已在业务系统废弃，该状态只在 Algo 内部使用）
+
+class ShipperStatus(EnumBase):
+    AVAILABLE = 1  
+    ASSIGN = 2
+    PICK = 3
+    NEARLY_AVAILABLE = 4
+work_status
+骑手的雇佣状态
+
+class ShipperWorkStatus(EnumBase):
+    WORKING = 1
+    OFF = 2
+    PENDING = 3
+    ONBOARDING = 4
+vaccination_status
+class VaccinationStatus(EnumBase):
+    INJECT_NONE = 0
+    INJECT_FIRST = 1
+    INJECT_SECOND = 2
+    INJECT_THIRD = 3
+    CURED = 99
+run_type
+已废弃
+
+class ShipperRunType(EnumBase):
+    FULL_TIME = 1
+    PART_TIME = 2
+services
+骑手的接单类型
+
+class NowService(EnumBase):
+    DELIVERY_NOW = 0
+    NOW_SHIP = 4
+    NOW_SHIP_MERCHANT = 5
+    NOW_SHIP_SHOPEE = 6
+    NOW_SHIP_SAMEDAY = 7
+    NOW_SHIP_MULTI_DROP = 8
+qr_code_status
+class ShipperQRCodeStatus(EnumBase):
+    INVALID = 0
+    VALID = 1
+training_type
+class ShipperTrainingType(EnumBase):
+    NORMAL = 0
+    TRAINING = 1
+    TRAINING_1 = 2
+    TRAINING_2 = 3
+vehicle_type
+class VehicleType(EnumBase):
+    MOTORBIKE = 0
+    BICYCLE = 1
+    CAR = 2
+    WALK = 3
+auto_assign_setting_type
+class SingleAssignSetting(EnumBase):
+    ON = 1
+    OFF = 0
+contract_type
+目前业务上只有 CONTRACT = 0 一种类型
+
+class ContractType(EnumBase):
+    CONTRACT = 0
+    ANNEX = 1
+inapp_contract_status
+class InappContractStatus(EnumBase):
+    SUPPLEMENTING_INFORMATION = 1
+    GENERATING = 10
+    READY_TO_SIGN = 11
+    GENERATING_SIGNATURE = 12
+    READY_TO_SUBMIT = 13
+    REVIEWING = 20
+    REVIEWING_WITH_ISSUE = 21
+    COMPLETED = 30
+    REJECTED = 40
+shipper_income_type
+class ShipperIncomeType(EnumBase):
+    SHIPPING_FEE = 1
+    ORDER_BONUS = 2
+    PARKING_FEE = 3
+    PICK_PARKING_FEE = 4
+    DROP_PARKING_FEE = 5
+    HAND_DELIVERY_FEE = 6
+    BAD_WEATHER_FEE = 7
+    RETURNED_FEE = 8
+    TIP_FEE = 9
+    SERVICE_FEE = 10
+    ORDER_POINT = 11
+    DAILY_BONUS = 12
+order_category
+class OrderCategory(EnumBase):
+    DEFAULT = -1
+    DELIVERY = 0
+    EXPRESS = 1
+    SHOPEE = 2
+    NOWMOTO = 3
+    NOWSHIP = 4
+    NOWSHIP_MERCHANT = 5
+    NOWSHIP_SHOPEE = 6
+    NOWSHIP_SAME_DAY = 7
+    NOWSHIP_MULTI_DROP = 8
+    GROUP = 200
+pending_reason_type
+已废弃
+
+class ReasonType(EnumBase):
+    NOT_DEFINE = 1
+    COH = 2
+    CUSTOM = 3
+    VIOLATION = 4
+    WITHOUT_WORKING = 5
+    WITHOUT_WORKING_LONG_TIME = 6
+    QUIT_REQUEST = 7
+    CONTRACT_EXPIRED = 8
+pending_reason
+class PendingReason(EnumBase):  
+    IN_DEBT = 1
+    VIOLATION = 2
+    LEAVE_MANY_TIMES = 3
+    CUSTOM = 4
+    WITHOUT_WORKING = 5
+    OVER_COH = 6
+    SELF_CREATE_ORDER = 7
+    DELIVER_FAR_FROM_DEST = 8
+    INCORRECT_DELIVERING_TIME = 9
+    BADLY_DRESSED = 10
+    INSUFFICIENT_DOCUMENTS = 11
+    QUIT_REQUEST = 13
+    FIRED_SHIPPER = 14
+    HAVE_NOT_RETURN_PARCEL_TO_NOW_HUB = 15
+    CONTRACT_EXPIRED = 16
+    TEMP_SUSPEND_TO_VERIFY_INFO = 18
+    INVALID_PROFILE_PICTURE = 19
+    WRITE_OFF = 20
+    REFUND_RELATED_AMOUNTS_FOR_LONG_TERM_INACTIVE_DRIVER = 21
+    REFUND_RELATED_AMOUNTS_FOR_TERMINATED_DRIVER = 22
+    HUB_DRIVER_DEPOSIT = 23
+quit_working_status
+class QuitWorkingStatus(EnumBase):
+    RECEIVED = 0
+    PROCESSING = 1
+    APPROVED = 2
+    CANCELLED = 3
+shipper_log_change_type
+`foody_internal_db`.`shipper_change_log_tab_%08d` 表中的 change_type 字段枚举
+
+class ShipperLogChangeType(EnumBase):
+    IN_HUB = 1
+    OUT_HUB = 2
+    UPDATE_AUTO_ASSIGNMENT_SETTING = 3
+    ADD_HUB_MAPPING = 4
+    DELETE_HUB_MAPPING = 5
+    UPDATE_AUTO_ACCEPT_SETTING = 6
+driver_working_group
+class DriverWorkingGroup(EnumBase):
+    FULL_TIME = 1       # 废弃
+    PART_TIME = 2       # 废弃
+    TESTER = 3          # 废弃
+    PART_TIME_09 = 6    # 废弃
+    PART_TIME_11 = 7    # 废弃
+    PART_TIME_12 = 8    # 废弃
+    PART_TIME_14 = 9    # 废弃
+    PART_TIME_15 = 10   # 废弃
+    PART_TIME_16 = 11
+    PART_TIME_17 = 12
+registered_slot_status
+class RegisteredSlotStatus(EnumBase):
+    SCHEDULED = 1
+    OFF = 2
+    WORKED = 3
+wallet_withdraw_status
+class WalletWithdrawStatus(EnumBase):
+    NORMAL = 1
+    SUSPEND = 2
+client_slot_status
+class ClientSlotStatus(EnumBase):
+    AVAILABLE = 1
+    CLOSED = 2
+    SCHEDULED = 3
+    WORKING = 4
+    WORKED = 5
+    OFF = 6
+    UNAVAILABLE_FULL_QUOTA = 7
+    UNAVAILABLE_OVERLAPPING = 8
+    UNAVAILABLE_PASSED = 9
+    SCHEDULED_CANCELLABLE = 10
+    SCHEDULED_UNCANCELLABLE = 11
+shipper_hub_payment_condition
+Hub payment KPI 指标
+
+class ShipperHubPaymentCondition(EnumBase):
+    ONLINE_TIME_IN_SHIFT = 1
+    ONLINE_TIME_IN_PEAK_HOUR = 2
+    MAX_DENY = 3
+    MAX_IGNORE = 4
+    MIN_SERVICE_LEVEL_RATE = 5
+    AUTO_ACCEPT_TIME = 6
+    BAD_WEATHER_BREAK = 7
+shopeepay_enabled
+class ShopeepayEnabled(EnumBase):
+    DISABLED = 0
+    ENABLED = 1
+人脸识别 DS Result
+0	
+Not compared (no identity photo)
+
+已废弃
+1	Matched	新 API
+2	Not matched	新 API
+3	Not matched (error)	已废弃
+4	Matched - Suspicious	已废弃
+5	Not compared(Server error)	旧 API
+6	Not compared(Invalid photo)	旧 API
+7	Not compared(Bright photo)	旧 API
+8	Not compared(Dark photo)	旧 API
+9	Not compared(Blocked photo)	旧 API
+10	Not compared(Blur photo)	旧 API
+11	Not compared(Filed embed)	旧 API
+12	Not matched(Server error)	旧 API
+13	Not matched(Failed to detect)	旧 API
+14	Not matched(Failed to embed)	旧 API
+15	Not matched(No valid photo)	旧 API
+16	Not matched(No matched)	旧 API
+17	Not matched(No Face)	旧 API
+18	Not matched(Failed to download photo)	旧 API
+19	Not matched(No face alignment result)	旧 API
+20	Not compared(Eye close)	旧 API
+21	
+Not matched(System Error)
+
+新 API
+22	
+Not matched(SLC Failure)
+
+新 API
+shipper_registration_status
+class ShipperRegistrationStatus(EnumBase):
+    SUBMITTED = 1
+    TEST_PASSED = 4
+    TEST_FAILED = 5
+    REVIEW_PASSED = 6
+    REVIEW_FAILED = 7
+    OFFER_SENT = 8
+    SUCCESS = 11
+    CANCELLED = 12
+    OFFER_SENT_EXPIRED = 13
+    INFORMATION_SUPPLEMENTED = 14
+    SEND_CONTRACT_GENERATING = 15
+    SEND_CONTRACT = 16
+    CONTRACT_READY_TO_SIGN_GENERATING = 17
+    CONTRACT_READY_TO_SIGN = 18
+    CONTRACT_SIGNED_GENERATING = 19
+    CONTRACT_SIGNED = 20
+check_out_reason
+class CheckoutReason(EnumBase):
+    TURN_OFF_GPS = 1
+authentication_type
+class AuthenticationType(EnumBase):
+    LOGIN = 1
+    CHECKIN = 2
+change log type
+`foody_internal_db`.`shipper_log_change_tab` 表中的 change_type 字段枚举
+
+class HrLogFieldType(EnumBase):
+    DM_TYPE = 1
+    EM_CONTRACT_TYPE = 2
+    DM_GROUP_SERVICE = 3
+    MODIFY_WORK_SHIFT = 4
+    SHIFT_ID = 5
+    IS_ACTIVE = 6
+    DM_MAX_ORDER_HANDLE = 7
+    DM_NOTE = 8
+    EM_WORK_STATUS = 9
+    DM_TRAINING_TYPE = 10
+    DM_VEHICLE_TYPE = 11
+    DM_PERMISSION_CONFIG = 12
+    EM_DEPOSIT = 13
+    EM_ADVANCE = 14
+    DM_KEEP_AMOUNT_CONFIG = 15
+    DM_NOW_SERVICE = 16
+    DM_ITEM_RENEW_DATE = 17
+    DM_PHONE = 18
+    DM_PERSONAL_EMAIL = 19
+    EM_FIRST_NAME = 20
+    EM_LAST_NAME = 21
+    CT_BANK_ACC = 22
+    CT_CONTRACT_DATE = 23
+    CT_BEGIN_WORK_DATE = 24
+    CT_WORK_STATUS = 25
+    CT_TERMINATION_DATE = 26
+    CT_TERMINATION_REASON = 27
+    CT_HR_NOTE = 28
+    OR_DELIVERY_FAR_FROM_DESTINATION = 29
+    DOC_EDIT_FILE = 30
+    DP_ONMAP_UNBLOCK_SHIPPER = 31
+    CT_CHECKLIST = 32
+    BLOCK_CHECK_IN_TIME = 33
+    CHANGE_HUB = 34
+    WALLET_STATUS = 35
+    DM_SHIFT_CATEGORY = 36
+    DM_WORKING_TIME_TYPE = 37
+    DM_WORKING_TIME_ID = 38
+    VACCINATION_STATUS = 39
+    VACCINATION_INJECT_TIME = 40
+    VACCINATION_IMAGE_NAME = 41
+    COVID19_TEST_NEG_TIME = 42
+    QR_CODE_STATUS = 43
+    SHIFT_CATEGORIES = 44
+    SHOPEE_TOC_ACCOUNT_USERNAME = 45
+    SHOPEE_TOC_ACCOUNT_USERID = 46
+    BANK_ACCOUNT_NO = 47
+    BANK_ACCOUNT_HOLDER_NAME = 48
+    TOB_ACCOUNT_STATUS = 49
+delete_account_disallowed_reason
+class DeleteAccountDisallowedReason(EnumBase):  
+    NOT_FINISH_QUIT_REQUEST = 1
+KYC Type
+class KYCType(EnumBase):  
+    NEW_APPLICANT = 1
+    PROFILE_PICTURE = 2
+    CRIMINAL_DOCUMENT = 3
+KYC Status
+class KYCStatus(EnumBase):  
+    DEFAULT = 0
+    PENDING = 1
+    APPROVED = 2
+    REJECTED = 3
+    BLACKLISTED = 4
+KYC Reject Reason
+class KYCRejectReason(EnumBase):  
+    DEFAULT = 0
+Applicant Status
+class ApplicantStatus(EnumBase):  
+    DEFAULT = 0
+    DRAFT = 1           # 骑手注册申请提交前，骑手可编辑注册表单
+    PENDING_KYC = 2     # 骑手注册申请已提交，注册表单对于骑手处于锁定不可编辑状态，同时等待运营审核
+    KYC_APPROVED = 3
+    KYC_REJECTED = 4
+    KYC_BLACKLISTED = 5
+    EXPIRED = 6         # 注册申请已过期
+Test Status
+class OnboardingTestStatus(EnumBase):  
+    DEFAULT = 0
+    FAILED = 1
+    PASSED = 2
+Attribute Status
+class AttributeStatus(EnumBase):  
+    DEFAULT = 0
+    CONFIRMED = 1
+Attribute Payment Method
+class AttributePaymentMethod(EnumBase):  
+    DEFAULT = 0
+    SHOPEEPAY = 1
+    CASH = 2
+    BANK = 3
+Registration Source
+class RegistrationSource(EnumBase):  
+    DEFAULT = 0
+    LEGACY_DRIVER_APP = 1   # 老的骑手 APP 注册页面
+    LEGACY_WEBSITE = 2      # 老的 Foody 网页
+    DRIVE_APP = 3           # 新骑手 APP 自主注册
+Onboarding Contract Status
+applicant 中的 contract_status 字段枚举
+
+class OnboardingContractStatus(EnumBase):  
+    DEFAULT = 0
+    OFFER_SENT = 1
+    CONTRACT_SENT = 2
+    SIGNED = 3
+    REJECTED = 4        # 骑手拒签
+    APPROVED = 5        # 运营审核通过
+    DISAPPROVED = 6     # 运营审核不通过
+    EXPIRED = 7         # 合同终止，例如骑手逾期未签署
+contract_status
+骑手入驻合同 shipper_contract_tab 中的 status 字段
+
+class ContractStatus(EnumBase):
+    DEFAULT = 0         # 刚创建的初始默认状态，代表合同已发送给骑手
+    READY_TO_SIGN = 1   # 废弃
+    SIGNED = 2          # 骑手已签署
+    CANCELLED = 3      
+    REJECTED = 4        # 骑手拒签
+    APPROVED = 5        # 运营审核通过
+    DISAPPROVED = 6     # 运营审核不通过
+    EXPIRED = 7         # 合同终止，例如骑手逾期未签署
+Onboarding Contract reject_reason
+骑手入驻合同 shipper_contract_tab 中的 reject_reason 字段
+
+class ContractRejectReason(EnumBase):
+    EMPTY = 0
+    INCORRECT_INFORMATION = 1
+gender
+class GenderType(EnumBase):
+    UNDEFINED = 0
+    MALE = 1
+    FEMALE = 2
+emergency_relationship
+class EmergencyRelationship(EnumBase):
+    DEFAULT = 0
+    PARENT = 1
+    SPOUSE = 2
+    SIBLING = 3
+    OTHERS = 4
+occupation_type
+class OccupationType(EnumBase):
+    DEFAULT = 0
+    TECHNOLOGY_DRIVERS = 1
+    OFFICE_STAFF = 2
+    COLLEGE_STUDENT = 3
+    NO_JOB = 4
+    FREELANCER = 5
+    OTHERS = 6
+applicant_vehicle_type
+class ApplicantVehicleType(EnumBase):
+    DEFAULT = 0
+    MOTORBIKE_OVER_50CC = 1
+    MOTORBIKE_UNDER_50CC = 2
+    ELECTRIC_MOTORBIKE = 3
+download_mms_scene
+class DownloadMMSScene(EnumBase):
+    ID_CARD_FRONT_PHOTO = 1
+    ID_CARD_BACK_PHOTO = 2
+    DRIVING_LICENSE_FRONT_PHOTO = 3
+    DRIVING_LICENSE_BACK_PHOTO = 4
+    VEHICLE_CERTIFICATE_FRONT_PHOTO = 5
+    VEHICLE_CERTIFICATE_BACK_PHOTO = 6
+    CRIMINAL_RECORD = 7
+    ONBOARDING_CONTRACT_SIGNATURE = 8
+download_uss_scene
+class DownloadUSSScene(EnumBase):
+    ONBOARDING_CONTRACT = 1
+    APPLICANT = 2
+benefit_type
+class BenefitType(EnumBase):
+    DEFAULT = 0
+    PRIORITY_BOOKING_SLOT = 1
+weekday
+class Weekday(EnumBase):
+    MONDAY = 1
+    TUESDAY = 2
+    WEDNESDAY = 3
+    THURSDAY = 4
+    FRIDAY = 5
+    SATURDAY = 6
+    SUNDAY = 7
+criminal_doc_status
+class CriminalDocStatus(EnumBase):  
+    DEFAULT = 0
+    PENDING_SUBMISSION = 1
+    PENDING_KYC = 2
+    KYC_REJECTED = 3
+    DEADLINE_EXCEEDED = 4
+    SATISFIED = 5
+profile_photo_status
+class ProfilePhotoStatus(EnumBase):
+    DEFAULT = 0
+    PENDING_KYC = 1
+    KYC_APPROVED = 2
+    KYC_REJECTED = 3
