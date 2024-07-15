@@ -1,4 +1,20 @@
-with rate as 
+with slr_tier_config_tab(slr_from,slr_to,slr_tier) as 
+(VALUES 
+(0,0.5,1),
+(0.5,0.65,2),
+(0.65,0.85,3),
+(0.85,0.95,4),
+(0.95,1,5)
+)
+,points_tier_config_tab(points_from,points_to,point_tier) as 
+(VALUES 
+(0,300,1),
+(300,800,2),
+(800,1500,3),
+(1500,2400,4),
+(2400,999999,5)
+)
+,rate as 
 (select 
         created_date,
         shipper_id as uid,
@@ -16,7 +32,19 @@ from
 
 from dev_vnfdbi_opsndrivers.driver_ops_raw_order_tab raw 
 
-left join (select * from shopeefood.shopeefood_mart_cdm_dwd_vn_rating_rating_driver_da where date(dt) = current_date - interval '1' day) rate
+left join 
+(select 
+        *,
+        case when cfo.shipper_rate = 0 then null
+        when cfo.shipper_rate = 1 or cfo.shipper_rate = 101 then 1
+        when cfo.shipper_rate = 2 or cfo.shipper_rate = 102 then 2
+        when cfo.shipper_rate = 3 or cfo.shipper_rate = 103 then 3
+        when cfo.shipper_rate = 104 then 4
+        when cfo.shipper_rate = 105 then 5
+        else null end as rating_star 
+
+from shopeefood.foody_user_activity_db__customer_feedback_order_tab__reg_daily_s0_live cfo
+    ) rate
     on raw.id = rate.order_id 
     and raw.order_type = 0
 left join shopeefood.foody_partner_archive_db__shipper_hub_order_tab__reg_continuous_s0_live hub 
@@ -31,7 +59,8 @@ and raw.order_status = 'Delivered'
 and raw.shipper_id > 0 
 and raw.city_id in (217,218,220)
 and hub.slot_id is not null
-and rating_star is not null)
+and rating_star is not null
+)
 group by 1,2
 )
 ,hub_performance as 
@@ -53,15 +82,15 @@ group by 1,2
 ,online_performance as
 (SELECT 
         base.report_date
-        -- ,day_of_week(base.report_date) as d_2
+                                                
         ,case 
         when day_of_week(base.report_date) IN (6,7) then 1 else 0 end as is_weekend
         ,base.shipper_id
         ,base.hub_type
         ,base.slot_id
                 
-        -- ,date_diff('second',base.actual_start_time_online,base.actual_end_time_online)*1.0000/(60*60) as total_online_time
-        -- ,date_diff('second',base.actual_start_time_work,base.actual_end_time_work)*1.0000/(60*60) as total_working_time
+                                                                                                                             
+                                                                                                                          
                  
         ,case when base.actual_end_time_online < base.start_shift_time then 0
             when base.actual_start_time_online > base.end_shift_time then 0
@@ -161,7 +190,8 @@ group by 1,2,3,4,5,6,7,8,9
 from online_performance 
 
 group by 1,2)
-select 
+,value_tab as 
+(select 
         m.*,
         SUM(op.total_online) AS total_online,
         SUM(op.online_lunch_weekend) AS online_lunch_weekend,
@@ -173,12 +203,7 @@ select
 
 from
 (select 
-        m.*,
-        -- pp_online/cast(working_days as double) as ave_pp_online,
-        -- case 
-        -- when pp_online/cast(working_days as double) > 5.733626 then 3 
-        -- when pp_online/cast(working_days as double) between 4.502711 and 5.733626 then 2 
-        -- else 1 end as working_type,
+        m.*,                             
         avg(rate.avg_rating) as pp_rating
 
 from
@@ -188,9 +213,9 @@ from
         sum(coalesce(hp.pass_kpi,0)) as pp_pass_kpi,
         sum(coalesce(hp.total_order,0)) as total_order,
         sum(coalesce(hp.total_registered,0)) as total_registered,
-        -- coalesce(count(distinct case when hp.total_order > 0  then hp.slot_id else null end)/cast(count(distinct case when hp.registered_ > 0  then hp.slot_id else null end) as double),0) as pp_active,
-        -- coalesce(count(distinct case when hp.kpi > 0  then hp.slot_id else null end)/cast(count(distinct case when hp.total_order > 0  then hp.slot_id else null end) as double),0) as pp_pass_kpi,
-        -- coalesce(sum(coalesce(hp.in_shift_online_time,0)),0) as pp_online,
+                                                                                                                                                                                                            
+                                                                                                                                                                                                      
+                                                                             
         sum(coalesce(late_order,0)) as pp_late,
         count(distinct case when total_order > 0 then hp.date_ else null end) as working_days, 
         sum(case when hp.date_ = m.end_date then coalesce(hp.total_order,0) else null end) as daily_order
@@ -198,16 +223,17 @@ from
         
 from
 (select 
-        date_ - interval '29' day as start_date,
-        date_ as end_date,
-        uid,
-        SUM(total_order) as total_order_end_date
+        report_date - interval '29' day as start_date,
+        report_date as end_date,
+        shipper_id as uid,
+        city_name,
+        total_order as total_order_end_date
 
-
-from dev_vnfdbi_opsndrivers.driver_ops_hub_driver_performance_tab
-where total_order > 0             
-and city_name in ('HCM City','Ha Noi City')     
-group by 1,2,3
+from dev_vnfdbi_opsndrivers.driver_ops_driver_performance_tab
+where 1 = 1 
+and city_name in ('HCM City','Ha Noi City','Hai Phong City')
+and shipper_type = 12     
+                 
 ) m 
 
 left join hub_performance hp 
@@ -215,21 +241,45 @@ left join hub_performance hp
         and hp.date_ between m.start_date and m.end_date
 
 
-group by 1,2,3,4
+group by 1,2,3,4,5
 ) m 
-
 
 left join rate 
         on rate.uid = m.uid
         and rate.created_date between m.start_date and m.end_date
-group by 1,2,3,4,5,6,7,8,9,10,11
+group by 1,2,3,4,5,6,7,8,9,10,11,12
 
 ) m 
 left join online_final op 
     on op.shipper_id = m.uid 
     and op.report_date between m.start_date and m.end_date
 
-where end_date between date'2024-05-20' and date'2024-05-26'
--- and m.uid = 41406019
-group by 1,2,3,4,5,6,7,8,9,10,11,12
--- ,13,14,15,16,17,18,19
+where end_date = ${cut_of_date}
+group by 1,2,3,4,5,6,7,8,9,10,11,12,13
+)
+select 
+        base.*,
+        sc.slr_tier,
+        pc.point_tier,
+        least(sc.slr_tier,pc.point_tier) as final_tier
+
+from 
+(select 
+        *,
+        (try(pp_pass_kpi*1.0000/pp_active)*2 + -- kpi,
+        try(pp_active*1.0000/total_registered)*2 + -- active 
+        IF(total_order=0,1,1 - try(pp_late*try(1.0000/total_order)))/2 + --  ontime,
+        IF(pp_rating IS NULL,1,try(pp_rating*1.0000/5))/2 -- rating
+        )/5 as slr,
+        coalesce(total_online,0)*10 as total_points
+        
+from value_tab
+) base
+
+left join slr_tier_config_tab sc on base.slr > sc.slr_from
+                                and base.slr <= sc.slr_to
+
+left join points_tier_config_tab pc on base.total_points > pc.points_from
+                                and base.total_points <= pc.points_to
+
+
