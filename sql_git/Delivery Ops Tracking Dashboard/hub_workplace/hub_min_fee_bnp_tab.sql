@@ -21,24 +21,21 @@ select
         count(distinct order_id) as total_order,
         sum(diff) as adjustment
 from
-(select *,YEAR(date(delivered_date))*100 + WEEK(date(delivered_date)) AS created_week from dev_vnfdbi_opsndrivers.shopeefood_vn_tet_holiday_min_fee_tab_adhoc_sunday
-where 1=1
-and delivered_date = date '2024-05-19' 
-and is_hub_order = 1
-and autopay_date = delivered_date
+(select *,YEAR(date(delivered_date))*100 + WEEK(date(delivered_date)) AS created_week 
+from dev_vnfdbi_opsndrivers.shopeefood_vn_tet_holiday_min_fee_tab_adhoc
+where min_fee_type = 'sunday'
+and grass_date = date '2024-07-14'
 and is_need_adjust_shipping_fee = 1
+and autopay_date = delivered_date
+and is_hub_order = 1
 and source in ('Food','Market')
 ) a 
 LEFT JOIN pay_note pn 
     on pn.week_num = a.created_week
 
 where partner_id not in 
-(41807977
-,50686306
-,41955704
-,50378700
-,50316248
-,40962704
-,50005026
+(41221791
+,42121319
+,50747949
 )
 group by 1,2,3,4 ,5
