@@ -311,7 +311,7 @@ driver filter(tag =2)
 pair filter(tag=4)	
 30001	driver not in the config range of order 
 30002	driver deny rate too high
-30003	driver auto accept config not match (removed)
+30003	driver auto accept config not match
 30004	driver has been assigned to order before
 30005	order and driver service type not match
 30006	assign hub order to non hub driver

@@ -72,4 +72,4 @@ and (is_a1 = true or is_a30 = true)
 and deposit is not null 
 group by 1,2,3
 
-# excluded hub and seperated by spxi avai/non avai
+-- # excluded hub and seperated by spxi avai/non avai
