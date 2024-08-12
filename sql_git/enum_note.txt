@@ -524,7 +524,7 @@ foody_delivery_admin_db__admin_order_refund_tab__reg_daily_s0_live
          WHEN ort.refund_type IN (1, 2, 5) THEN 'Refund'
          ELSE NULL END AS type, /* - note: 3,4,6 (compensation order) ; 1,2,5 (refund order) */
 
-
+shopeefood.foody_order_db__order_image_tab__reg_daily_s0_live
 foody_delivery_db.order_image_tab
 class OrderImageType(EnumBase):
    MERCHANT_CLOSED_CONFIRM = 1

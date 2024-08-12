@@ -40,7 +40,7 @@ left join last_incharge_time_tab li
 where is_del = 1
 -- and bf.source in ('NowShip')
 and bf.source_2 in ('now_ship_shopee')
-and bfo.grass_date = date '2024-06-06'
+and bfo.grass_date = date '2024-08-08'
 -- and hour(inflow_timestamp) in (7,8,9,13,14,15)
 and hour (li.last_incharge_timestamp) in (7,8,9,13,14,15)
 -- group by 1,2,3,4
@@ -71,11 +71,11 @@ and hour (li.last_incharge_timestamp) in (7,8,9,13,14,15)
 (select 
     raw.*
 from driver_performance raw 
-inner join dev_vnfdbi_opsndrivers.spxi_scheme p on cast(p.shipper_id as bigint) = raw.shipper_id
+inner join dev_vnfdbi_opsndrivers.driver_ops_spxi_normal_scheme p on cast(p.shipper_id as bigint) = raw.shipper_id
 where sla >= 95 
 and total_orders >= 10
 )
-select * from raw where shipper_id = 50405167
+select
     t2.*
     ,t1.ref_order_id
     ,t1.order_status
@@ -85,4 +85,3 @@ inner join eligible_driver t2
     on t1.shipper_id = t2.shipper_id
 where rnk <= 10	
 and sla >= 95 and total_orders >= 10
-
