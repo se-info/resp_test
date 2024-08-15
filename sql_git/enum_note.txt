@@ -165,6 +165,10 @@ NOWSHIP_MULTI_DROP = 8
     QUIT = 23
     MERCHANT_CLOSED = 24
     TAKEN_BACK_BY_SYSTEM = 25
+    Return to hub = 28
+    Delivery_pending = 12
+    return success = 26
+    returning_to_hub = 13
 
 ---group info status 
 class GroupStatus(EnumBase):
