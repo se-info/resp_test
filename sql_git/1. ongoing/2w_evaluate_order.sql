@@ -64,23 +64,22 @@ where date(dt) = current_date - interval '1' day
 ) dot on dot.ref_order_id = ro.id and dot.ref_order_category = ro.order_type
 
 where 1 = 1 
-and ro.order_type not in (0,6) 
-and ro.created_date between date'2024-08-13' - interval '6' day and date'2024-08-13'
+and ro.created_date = date'2024-08-12'
 and ro.order_status = 'Delivered'
 and ro.filter_delivery = 1 
 -- group by 1,2,3,4,5,6,7,8,9,10
 )
 select 
-        created_date,
-        -- coalesce(driver_distance_group,'Grand Total') as driver_distance_group,
+        -- created_date,
+        coalesce(driver_distance_group,'Grand Total') as driver_distance_group,
         coalesce(user_distance_group,'Grand Total') as user_distance_group,
-        count(distinct order_code) as ado
-        -- count(distinct case when is_hub_delivered = 1 then order_code else null end) as hub_ado,
-        -- count(distinct case when is_hub_delivered != 1 then order_code else null end) as non_hub_ado
+        count(distinct order_code) as ado,
+        count(distinct case when is_hub_delivered = 1 then order_code else null end) as hub_ado,
+        count(distinct case when is_hub_delivered != 1 then order_code else null end) as non_hub_ado
 
 
 from raw 
 
-group by 1,grouping sets (user_distance_group,())
--- group by grouping sets (driver_distance_group,user_distance_group,(driver_distance_group,user_distance_group),())
+-- group by 1,grouping sets (user_distance_group,())
+group by grouping sets (driver_distance_group,user_distance_group,(driver_distance_group,user_distance_group),())
 

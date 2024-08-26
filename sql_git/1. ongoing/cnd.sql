@@ -28,12 +28,14 @@ LEFT JOIN
              ref_order_id
             ,order_category
             ,COUNT(ref_order_id) AS assigning_count
-     FROM dev_vnfdbi_opsndrivers.phong_raw_assignment_test
-     WHERE metrics != 'Denied'
+
+     FROM driver_ops_order_assign_log_tab
+     WHERE status in (3,4,2,14,15,8,9,17,18) 
      GROUP BY 1,2
      ) sa 
      on sa.ref_order_id = raw.id 
      and sa.order_category = raw.order_type
+where filter_delivery = 1 
 )
 SELECT 
         created_date,
