@@ -42,7 +42,7 @@ with raw as
         sm.city_name,
         ARRAY_JOIN(SPLIT(sp.shift_categories,','),';') AS original_shift,
         CARDINALITY(SPLIT(sp.shift_categories,',')) AS num_of_original_shift,
-        '3;5;8;10' AS import_shift
+        '1;3;5;8;10' AS import_shift
 
 FROM shopeefood.foody_internal_db__shipper_profile_tab__reg_continuous_s0_live sp
 
@@ -60,8 +60,10 @@ select
         city_name,
         original_shift, 
         import_shift,
-        replace(replace(replace(replace(original_shift, '1', '5'), '2', '8'), '3', '10'),'4','3') AS shift_revert
+        -- shift_categories,
+        replace(replace(replace(replace(replace(replace(original_shift, '1', 'TEMP'), '2', '8'), '3', '10'),'4','3'),'5','1'),'TEMP','5') AS shift_revert
+from raw 
+where city_name = 'HCM City'
 
-from raw where city_name = 'Ha Noi City'
 
         
