@@ -1,77 +1,6 @@
 WITH params(report_date,uid,hub_type_x_start_time) AS
 (VALUES
-(date'2024-08-26',40814169,'5 hour shift-8'),
-(date'2024-08-26',50755371,'5 hour shift-11'),
-(date'2024-08-27',41349153,'5 hour shift-8'),
-(date'2024-08-27',50168880,'5 hour shift-11'),
-(date'2024-08-27',41223493,'5 hour shift-18'),
-(date'2024-08-27',50611087,'3 hour shift-10'),
-(date'2024-08-27',50478469,'5 hour shift-11'),
-(date'2024-08-27',50749097,'5 hour shift-18'),
-(date'2024-08-27',50343909,'5 hour shift-11'),
-(date'2024-08-27',41300954,'3 hour shift-18'),
-(date'2024-08-28',50753636,'3 hour shift-10'),
-(date'2024-08-28',41168532,'5 hour shift-11'),
-(date'2024-08-28',50758382,'5 hour shift-11'),
-(date'2024-08-28',40075198,'5 hour shift-11'),
-(date'2024-08-28',40031190,'5 hour shift-18'),
-(date'2024-08-29',50316386,'3 hour shift-10'),
-(date'2024-08-29',41248637,'5 hour shift-11'),
-(date'2024-08-29',41218629,'5 hour shift-8'),
-(date'2024-08-29',50368090,'5 hour shift-11'),
-(date'2024-08-30',41300954,'5 hour shift-8'),
-(date'2024-08-31',50611087,'3 hour shift-10'),
-(date'2024-08-31',42338654,'5 hour shift-8'),
-(date'2024-09-01',41049079,'5 hour shift-11'),
-(date'2024-09-01',50748675,'5 hour shift-11'),
-(date'2024-09-01',40045749,'3 hour shift-20'),
-(date'2024-08-31',42280948,'5 hour shift-11'),
-(date'2024-08-27',23085760,'3 hour shift-10'),
-(date'2024-09-01',22721204,'5 hour shift-11'),
-(date'2024-08-31',50762283,'5 hour shift-8'),
-(date'2024-08-31',41958709,'5 hour shift-18'),
-(date'2024-08-31',41218629,'5 hour shift-18'),
-(date'2024-08-25',40917750,'5 hour shift-18'),
-(date'2024-08-25',50744536,'5 hour shift-16'),
-(date'2024-08-25',16826461,'5 hour shift-11'),
-(date'2024-08-25',41862234,'5 hour shift-11'),
-(date'2024-08-25',40056079,'5 hour shift-18'),
-(date'2024-08-26',22116758,'5 hour shift-8'),
-(date'2024-08-26',50752691,'5 hour shift-8'),
-(date'2024-08-26',50374191,'5 hour shift-18'),
-(date'2024-08-26',22354294,'5 hour shift-18'),
-(date'2024-08-27',41974639,'5 hour shift-11'),
-(date'2024-08-27',23113469,'5 hour shift-18'),
-(date'2024-08-27',50753577,'5 hour shift-18'),
-(date'2024-08-28',40890195,'5 hour shift-6'),
-(date'2024-08-28',40049126,'5 hour shift-8'),
-(date'2024-08-28',41223536,'5 hour shift-11'),
-(date'2024-08-28',16376302,'5 hour shift-18'),
-(date'2024-08-29',50372813,'5 hour shift-11'),
-(date'2024-08-28',41072333,'5 hour shift-18'),
-(date'2024-08-29',42340148,'5 hour shift-11'),
-(date'2024-08-29',50389031,'5 hour shift-11'),
-(date'2024-08-29',8507842,'5 hour shift-11'),
-(date'2024-08-29',23136451,'5 hour shift-11'),
-(date'2024-08-30',41104792,'5 hour shift-6'),
-(date'2024-08-29',42125694,'5 hour shift-11'),
-(date'2024-08-30',40162096,'3 hour shift-19'),
-(date'2024-08-30',42072146,'5 hour shift-11'),
-(date'2024-08-30',41274215,'5 hour shift-18'),
-(date'2024-08-30',41081707,'5 hour shift-18'),
-(date'2024-08-30',50673076,'5 hour shift-18'),
-(date'2024-08-30',22088759,'5 hour shift-11'),
-(date'2024-08-30',41991424,'5 hour shift-18'),
-(date'2024-08-30',50442447,'5 hour shift-18'),
-(date'2024-08-30',40085704,'3 hour shift-21'),
-(date'2024-08-31',50749525,'5 hour shift-6'),
-(date'2024-08-30',40785317,'5 hour shift-18'),
-(date'2024-08-31',40299200,'5 hour shift-18'),
-(date'2024-08-31',41973358,'5 hour shift-18'),
-(date'2024-09-01',40797662,'5 hour shift-11'),
-(date'2024-08-31',50374278,'5 hour shift-18'),
-(date'2024-09-01',23127102,'3 hour shift-19'),
-(date'2024-09-01',41913834,'5 hour shift-16')
+(date'2024-08-26',40814169,'5 hour shift-8')
 ) 
 ,pay_note(week_num,max_date,min_date) as 
 (SELECT
@@ -126,7 +55,7 @@ where date(from_unixtime(ho.autopay_date_ts-3600)) >= date'2024-08-19'
                                     
         r.shipper_id
 
-from dev_vnfdbi_opsndrivers.phong_raw_order r 
+from dev_vnfdbi_opsndrivers.driver_ops_raw_order_tab r 
 
 left join hub_order_tab ho on ho.ref_order_id = r.id and ho.ref_order_category = r.order_type
 
@@ -213,5 +142,3 @@ left join shopeefood.foody_mart__profile_shipper_master sm on sm.shipper_id = f.
 
 group by 1,2,3,4,5
 having sum(bonus_value_adjust) > 0
-
--- https://docs.google.com/document/d/1962Lwb_lzZQaQsmVZrv2N_x06GuWMYOj7kDRF68nj14/edit#heading=h.vmv88dyxdlzu

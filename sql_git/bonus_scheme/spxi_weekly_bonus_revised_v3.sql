@@ -12,23 +12,10 @@ CROSS JOIN
 )
 group by 1 
 )
-,driver_list AS
-(SELECT  
-       report_date, 
-       uid AS shipper_id,
-       service_name,
-       CARDINALITY(FILTER(service_name,x ->x in ('Delivery') )) as delivery_service_filter,
-       CARDINALITY(FILTER(service_name,x ->x in ('Now Ship','Ship Shopee') )) as ship_service_filter
-
-FROM dev_vnfdbi_opsndrivers.driver_ops_driver_services_tab 
-
-WHERE 1 = 1
-AND report_date BETWEEN CURRENT_DATE - INTERVAL '90' DAY AND CURRENT_DATE - INTERVAL '1' DAY
-)
 ,f AS
 (SELECT 
-       DATE(report_date) AS report_date, 
-       YEAR(DATE(report_date))*100+WEEK(DATE(report_date)) AS week_num,
+       DATE(delivered_timestamp) AS report_date, 
+       YEAR(DATE(delivered_timestamp))*100+WEEK(DATE(delivered_timestamp)) AS week_num,
        raw.shipper_id,
        raw.city_name,
        COUNT(DISTINCT CASE WHEN raw.order_type = 6 THEN order_code ELSE NULL END) AS e2c,
@@ -37,15 +24,11 @@ AND report_date BETWEEN CURRENT_DATE - INTERVAL '90' DAY AND CURRENT_DATE - INTE
 
 FROM dev_vnfdbi_opsndrivers.driver_ops_raw_order_tab raw 
 
-INNER JOIN (SELECT * FROM driver_list WHERE ship_service_filter > 0 AND delivery_service_filter = 0) dl 
-        ON dl.shipper_id = raw.shipper_id
-        AND dl.report_date = DATE(COALESCE(raw.delivered_timestamp,raw.returned_timestamp))
-
 WHERE 1 = 1 
 AND raw.order_type != 0 
-AND raw.order_status IN ('Delivered')
+AND raw.order_status IN ('Delivered','Returned')
 AND DATE(COALESCE(raw.delivered_timestamp,raw.returned_timestamp)) BETWEEN date'${start_date}' and date'${end_date}'
-GROUP BY 1,2,3 ,4
+GROUP BY 1,2,3,4
 )
 ,m AS
 (SELECT 
@@ -82,11 +65,6 @@ LEFT JOIN driver_ops_driver_performance_tab dp ON dp.shipper_id = f.shipper_id a
 
 FROM m 
 GROUP BY 1,2,3
-HAVING (CASE 
-        WHEN COUNT(DISTINCT CASE WHEN sla_rate >= 90 THEN report_date ELSE NULL END) >= 4 AND SUM(e2c+c2c) >= 150 then 500000
-        WHEN COUNT(DISTINCT CASE WHEN sla_rate >= 90 THEN report_date ELSE NULL END) >= 4 AND SUM(e2c+c2c) >= 110 then 300000
-        WHEN COUNT(DISTINCT CASE WHEN sla_rate >= 90 THEN report_date ELSE NULL END) >= 4 AND SUM(e2c+c2c) >= 80 then 200000
-        ELSE 0 END) > 0 
 )
 SELECT 
         el.week_num,
@@ -105,5 +83,3 @@ LEFT JOIN shopeefood.foody_mart__profile_shipper_master dp ON dp.shipper_id = el
 
 LEFT JOIN pay_note pn 
     on pn.week_num = el.week_num
-
-
