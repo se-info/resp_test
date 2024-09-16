@@ -1,6 +1,6 @@
 WITH params(report_date,uid,hub_type_x_start_time) AS
 (VALUES
-(date'2024-08-26',40814169,'5 hour shift-8')
+(date'2024-09-09',50550043,'5 hour shift-11')
 ) 
 ,pay_note(week_num,max_date,min_date) as 
 (SELECT
@@ -41,13 +41,6 @@ where date(from_unixtime(ho.autopay_date_ts-3600)) >= date'2024-08-19'
         hub.hub_type_original,
         hub.hub_type_x_start_time,
         hub.hub_locations,
-        case 
-        when hub.hub_locations in ('HCM_ Go Vap C','HCM_ Go Vap D','HCM_ Binh Thanh A','HCM_Q2 B','HCM_ Binh Thanh B','HCM_ Go Vap A','HCM_ Go Vap B','HCM_Q12 B','HCM_Q12 A','HCM_Q12 C','HCM_ Binh Thanh C','HCM_ Phú Nhuận','HCM_ Q11','HCM_Tan Binh B','Bình Thạnh X','Gò Vấp X','Bình Thạnh Y','Phú Nhuận X','Tân Bình X','Tân Bình Y') then 'phase1'
-        when hub.hub_locations in ('HCM_Q5','HCM_Q6 A','Quận 6 X','Tân Phú X','HCM_Q8 A','HCM_Q8 B','HCM_Binh Tan D','HCM_Tan Binh A','HCM_Tan Phu C','HCM_ Tan Phu A','HCM_Binh Tan F','HCM_ Tan Phu B','HCM_Binh Tan E','HCM_Binh Tan A','HCM_Binh Tan B','HCM_Q6 B','HCM_Q10','HCM_Q3','Quận 1 X','Quận 3 X','Quận 5 X','Quận 10 X','Quận 11 X','HCM_Q1 A','HCM_Q1 B') then 'phase2'
-        when hub.hub_locations in ('Tay Ho C','Bac Tu Liem B','Bac Tu Liem D','Long Bien A','Long Biên B','Long Biên C','Cau Giay A','Cau Giay B','Nam Tu Liem B','Nam Từ Liêm A','Ba Dinh','Dong Da A','Thanh Xuan C','Thanh Xuan F','Nam Tu Liem C','Thanh Xuan E','Hà Đông X','Thanh Xuân X','Đống Đa Y','Hai Bà Trưng X','Cầu Giấy Y','Đống Đa X','Ba Đình X','Cầu Giấy X') then 'phase2'
-        when hub.hub_locations in ('HCM_Q2 A','HCM_Q2 C','HCM_Q2 D','HCM_Q4','HCM_Q7 B','HCM_Q7 C','HCM_Q7 D','HCM_Q7 E','HCM_Q9 A','HCM_Q9 C','HCM_Q9 B','HCM_Thu Duc A','HCM_Thu Duc E','HCM_Thu Duc F') then 'phase3'
-        when hub.hub_locations in ('Ha Dong B','Ha Dong E','Hà Đông C','Hoang Mai A','Thanh Tri C','Dong Da B','Hai Ba Trung A','Hai Ba Trung B','Hoan Kiem','Tay Ho A','Hoang Mai B','Thanh Xuan D','Hoàng Mai X','Hoàng Mai Y') then 'phase3'
-        end as phase_rollout,
         hub.kpi,
                 
                                                                                                           
@@ -65,7 +58,7 @@ left join driver_ops_hub_driver_performance_tab hub on hub.slot_id = ho.slot_id 
 where 1 = 1 
 and ho.ref_order_id is not null 
 and r.order_status = 'Delivered'
-and date(r.delivered_timestamp) between date'2024-08-26' and date'2024-09-01' 
+and date(r.delivered_timestamp) between date'2024-09-09' and date'2024-09-15' 
 and hub.city_name != 'Hai Phong City'
 and hub.hub_type_original in ('1 hour shift','3 hour shift','5 hour shift')
 )
@@ -80,7 +73,6 @@ and hub.hub_type_original in ('1 hour shift','3 hour shift','5 hour shift')
         when p.uid is not null then 1
         else s.kpi end as kpi_adjusted,
         s.slot_id,
-        s.phase_rollout,
         count(distinct s.id) as total_order,
         count(distinct case when s.group_id > 0 then s.id else null end) as cnt_from_2nd_stacked
 
@@ -91,7 +83,7 @@ LEFT JOIN params p
     and p.report_date = s.report_date
     and p.hub_type_x_start_time = s.hub_type_x_start_time            
 
-group by 1,2,3,4,5,6,7,8
+group by 1,2,3,4,5,6,7
 )
 ,final_ as 
 (select
@@ -102,7 +94,6 @@ group by 1,2,3,4,5,6,7,8
         kpi_adjusted,
         hub_type_original,
         hub_type_x_start_time,
-        phase_rollout,
         case 
         when hub_type_original = '3 hour shift' and cnt_from_2nd_stacked >= 9 and kpi = 1 then (4000 * (cnt_from_2nd_stacked -  8)) + 8000
         when hub_type_original = '3 hour shift' and cnt_from_2nd_stacked >= 5 and kpi = 1 then 2000 * (cnt_from_2nd_stacked - 4)
@@ -124,13 +115,14 @@ group by 1,2,3,4,5,6,7,8
 
 from f 
 )
-select 
+select distinct hub_type_x_start_time FROM final_
+
         f.report_date,
         f.shipper_id,
         sm.shipper_name,
         sm.city_name,
         'spf_do_0007||HUB_MODEL_Gia tang thu nhap don cho tai xe_'||date_format(f.report_date,'%Y-%m-%d') as txn_note,
-        array_agg(distinct hub_type_x_start_time) as shift_ext_info,
+        array_agg(distinct case when bonus_value_adjust > 0 then hub_type_x_start_time end) as shift_ext_info,
         sum(total_order) as cnt_order,
         sum(cnt_from_2nd_stacked) as cnt_stacked,
         sum(bonus_value) as original_bonus,
