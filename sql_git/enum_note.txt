@@ -1138,3 +1138,8 @@ lass ShopeeBookingStatus(EnumBase):
    DELIVERY_RETRY = 21
    RECLAIMED = 22
    BULKY_ITEM = 23
+
+   ---
+    group table new
+    shopeefood.shopeefood_mart_dwd_vn_multi_stacking_shippingfee_group_di
+    shopeefood.shopeefood_mart_dwd_vn_multi_stacking_shippingfee_di
