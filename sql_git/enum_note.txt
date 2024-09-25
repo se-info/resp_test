@@ -1143,3 +1143,37 @@ lass ShopeeBookingStatus(EnumBase):
     group table new
     shopeefood.shopeefood_mart_dwd_vn_multi_stacking_shippingfee_group_di
     shopeefood.shopeefood_mart_dwd_vn_multi_stacking_shippingfee_di
+    ---
+
+
+shopeefood.foody_partner_db__shipper_face_recognition_image_review_tab__reg_daily_s0_live
+class FaceRecognitionDSStatus(EnumBase): - ds_result
+   NOT_COMPARED = 0
+   MATCHED = 1
+   NOT_MATCHED = 2
+   NOT_MATCHED_ERROR = 3
+   MATCHED_SUSPICIOUS = 4
+   NOT_COMPARED_SERVER_ERROR = 5
+   NOT_COMPARED_INVALID_PHOTO = 6
+   NOT_COMPARED_BRIGHT_PHOTO = 7
+   NOT_COMPARED_DARK_PHOTO = 8
+   NOT_COMPARED_BLOCKED_PHOTO = 9
+   NOT_COMPARED_BLUR_PHOTO = 10
+   NOT_COMPARED_FILED_EMBED = 11
+   NOT_MATCHED_SERVER_ERROR = 12
+   NOT_MATCHED_FAILED_TO_DETECT = 13
+   NOT_MATCHED_FAILED_TO_EMBED = 14
+   NOT_MATCHED_NO_VALID_PHOTO = 15
+   NOT_MATCHED_NO_MATCHED = 16
+   NOT_MATCHED_NO_FACE = 17
+   NOT_MATCHED_FAILED_TO_DOWNLOAD_PHOTO = 18
+   NOT_MATCHED_NO_FACE_ALIGNMENT_RESULT = 19
+   NOT_COMPARED_EYE_CLOSE = 20
+   NOT_MATCHED_SYSTEM_ERROR = 21
+   NOT_MATCHED_SLC_FAILURE = 22
+
+Class FaceRecognitionReviewResult(EnumBase): review_result
+   DEFAULT = 0
+   MATCHED = 1
+   NOT_SURE = 2
+   NOT_MATCHED = 3

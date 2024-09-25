@@ -1,5 +1,8 @@
 with phase_raw as 
-(select ARRAY['Bình Thạnh X','Bình Thạnh Y','Gò Vấp X','HCM_ Binh Thanh A','HCM_ Binh Thanh B','HCM_ Binh Thanh C','HCM_ Go Vap A','HCM_ Go Vap B','HCM_ Go Vap C','HCM_ Go Vap D','HCM_ Phú Nhuận','HCM_ Q11','HCM_Q12 A','HCM_Q12 B','HCM_Q12 C','HCM_Q2 B','HCM_Tan Binh B','Phú Nhuận X','Tân Bình X','Tân Bình Y','HCM_Q10','HCM_Q3','Quận 1 X','Quận 3 X','Quận 5 X','Quận 10 X','Quận 11 X','HCM_Q1 A','HCM_Q1 B'] as phase2)
+(select ARRAY[
+'Tay Ho C','Bac Tu Liem B','Bac Tu Liem D','Long Bien A','Long Biên B','Long Biên C','Cau Giay A','Cau Giay B','Nam Tu Liem B','Nam Từ Liêm A','Ba Dinh','Dong Da A','Thanh Xuan C','Thanh Xuan F','Nam Tu Liem C','Nam Tu Liem D','Thanh Xuan E','Hà Đông X','Thanh Xuân X','Đống Đa Y','Hai Bà Trưng X','Cầu Giấy Y','Đống Đa X','Ba Đình X','Cầu Giấy X','Ha Dong B','Ha Dong E','Hà Đông C','Hoang Mai A','Thanh Tri C','Dong Da B','Hai Ba Trung A','Hai Ba Trung B','Hoan Kiem','Tay Ho A','Hoang Mai B','Thanh Xuan D','Hoàng Mai X','Hoàng Mai Y'
+    ]
+as phase2)
 ,hcm_phase2 as
 (select ARRAY['HCM_Q5','HCM_Q6 A','Quận 6 X','Tân Phú X','HCM_Q8 A','HCM_Q8 B','HCM_Binh Tan D','HCM_Tan Binh A','HCM_Tan Phu C','HCM_ Tan Phu A','HCM_Binh Tan F','HCM_ Tan Phu B','HCM_Binh Tan E','HCM_Binh Tan A','HCM_Binh Tan B','HCM_Q6 B'] as phase2)
 ,hn_phase2 as 
@@ -31,7 +34,7 @@ left join shopeefood.foody_mart__profile_shipper_master sm on sm.shipper_id = hm
 cross join phase_raw 
 
 where 1 = 1 
-and regexp_like(sp.shift_categories,'2|3') = true  
+and regexp_like(sp.shift_categories,'2|3') = true 
 and sm.shipper_status_code = 1 
 and sm.shipper_type_id = 12 
 -- and sm.city_id = 220
