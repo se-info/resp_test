@@ -1177,3 +1177,9 @@ Class FaceRecognitionReviewResult(EnumBase): review_result
    MATCHED = 1
    NOT_SURE = 2
    NOT_MATCHED = 3
+    ---
+check freepick traffic
+select * from shopeefood.shopeefood_mart_dwd_vn_merchant_driver_traffic_civ_di	
+
+
+
