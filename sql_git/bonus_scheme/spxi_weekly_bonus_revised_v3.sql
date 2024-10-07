@@ -83,3 +83,6 @@ LEFT JOIN shopeefood.foody_mart__profile_shipper_master dp ON dp.shipper_id = el
 
 LEFT JOIN pay_note pn 
     on pn.week_num = el.week_num
+
+
+-- select * from driver_ops_spxi_only_driver_list       
