@@ -22,7 +22,7 @@ left join
 from driver_ops_raw_order_tab   
 where order_status in ('Delivered','Quit','Returned')
 group by 1,2 
-) r on r.group_id = cast(a.group_id as bigint)
+) r on r.group_id = cast(a.group_id as bigint)  
 
 where a.api = 'get_group_driver_shippingfee'
 and cast(a.group_id as bigint) > 0  

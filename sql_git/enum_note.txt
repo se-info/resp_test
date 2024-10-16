@@ -940,6 +940,7 @@ class KYCType(EnumBase):
     NEW_APPLICANT = 1
     PROFILE_PICTURE = 2
     CRIMINAL_DOCUMENT = 3
+    Change Working Info = 4
 KYC Status
 class KYCStatus(EnumBase):  
     DEFAULT = 0
@@ -1221,3 +1222,12 @@ class PeakModeMetric(EnumBase):
 	ONLINE_DRIVER = 6
 	BLOCKED_ONLINE_DRIVER = 7
 	ONLINE_DRIVER_RATE = 8
+
+---
+CFA batch log: 
+select *
+
+from shopeefood_assignment.vn_order_assign_shipper_processing_log_tab_di
+
+where date(dt) = date'2024-10-15'
+

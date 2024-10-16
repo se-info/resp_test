@@ -26,8 +26,8 @@ FROM dev_vnfdbi_opsndrivers.driver_ops_raw_order_tab raw
 
 WHERE 1 = 1 
 AND raw.order_type != 0 
-AND raw.order_status IN ('Delivered','Returned')
-AND DATE(COALESCE(raw.delivered_timestamp,raw.returned_timestamp)) BETWEEN date'${start_date}' and date'${end_date}'
+AND raw.order_status IN ('Delivered')
+AND DATE(raw.delivered_timestamp) BETWEEN date'${start_date}' and date'${end_date}'
 GROUP BY 1,2,3,4
 )
 ,m AS
@@ -83,6 +83,5 @@ LEFT JOIN shopeefood.foody_mart__profile_shipper_master dp ON dp.shipper_id = el
 
 LEFT JOIN pay_note pn 
     on pn.week_num = el.week_num
-
 
 -- select * from driver_ops_spxi_only_driver_list       
