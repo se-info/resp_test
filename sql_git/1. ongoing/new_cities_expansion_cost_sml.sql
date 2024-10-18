@@ -27,6 +27,7 @@ LEFT JOIN (SELECT
           ) dotet on dotet.order_id = dot.delivery_id  
 where 1 = 1 
 and dot.order_type = 0
+and dot.shipper_id > 0
 and dot.created_date >= date'2024-08-01'
 and city_name in ('An Giang','Long An','Tien Giang','Hai Duong','Nam Dinh City','Phu Yen','Dong Thap','Kien Giang','Dak Lak','Thanh Hoa','Binh Dinh','Binh Thuan')
 and dot.order_status in ('Delivered','Quit','Returned')
